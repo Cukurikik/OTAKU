@@ -1,0 +1,1486 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OtakuHub Web Companion - Remote PC Streaming & Reader</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <!-- Hls.js for HLS Video Playback on non-Safari PC browsers -->
+  <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+  <style>
+    :root {
+      --bg-base: #090d16;
+      --bg-surface: #111827;
+      --bg-surface-elevated: #1a2234;
+      --bg-card: rgba(26, 34, 52, 0.7);
+      --bg-glass: rgba(17, 24, 39, 0.85);
+      --primary: #6366f1;
+      --primary-hover: #4f46e5;
+      --primary-glow: rgba(99, 102, 241, 0.35);
+      --accent-anime: #8b5cf6;
+      --accent-comic: #06b6d4;
+      --accent-drama: #ec4899;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --text-dim: #64748b;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-active: rgba(99, 102, 241, 0.4);
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 18px;
+      --radius-full: 9999px;
+      --shadow-sm: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.5);
+      --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-base);
+      color: var(--text-main);
+      font-family: var(--font-sans);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* Ambient Background Glow */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -200px;
+      left: 20%;
+      width: 600px;
+      height: 600px;
+      background: radial-gradient(circle, rgba(99, 102, 241, 0.12) 0%, rgba(9, 13, 22, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::after {
+      content: '';
+      position: fixed;
+      bottom: -200px;
+      right: 10%;
+      width: 500px;
+      height: 500px;
+      background: radial-gradient(circle, rgba(236, 72, 153, 0.08) 0%, rgba(9, 13, 22, 0) 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    ::-webkit-scrollbar-track {
+      background: var(--bg-base);
+    }
+    ::-webkit-scrollbar-thumb {
+      background: var(--bg-surface-elevated);
+      border-radius: var(--radius-full);
+      border: 2px solid var(--bg-base);
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--text-dim);
+    }
+
+    /* Header & Navigation */
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 40;
+      background: var(--bg-glass);
+      backdrop-filter: blur(16px);
+      border-bottom: 1px solid var(--border);
+      padding: 14px 28px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, var(--primary), #a855f7);
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 18px;
+      color: #fff;
+      box-shadow: 0 0 15px var(--primary-glow);
+    }
+
+    .brand-text h1 {
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .brand-text .badge {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.3);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.05em;
+    }
+
+    .brand-text p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Nav Tabs */
+    .nav-tabs {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--bg-surface);
+      padding: 4px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-family: inherit;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 18px;
+      border-radius: var(--radius-full);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn:hover {
+      color: var(--text-main);
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: #fff;
+      box-shadow: 0 2px 8px var(--primary-glow);
+    }
+
+    /* Header Search & Connection Status */
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .search-box {
+      position: relative;
+      width: 280px;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      font-family: inherit;
+      font-size: 13px;
+      padding: 9px 14px 9px 36px;
+      border-radius: var(--radius-full);
+      outline: none;
+      transition: all 0.2s ease;
+    }
+
+    .search-box input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-glow);
+      width: 320px;
+    }
+
+    .search-box svg {
+      position: absolute;
+      left: 12px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--text-dim);
+      pointer-events: none;
+    }
+
+    .status-badge {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      color: #34d399;
+      padding: 6px 12px;
+      border-radius: var(--radius-full);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font-mono);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #10b981;
+      box-shadow: 0 0 8px #10b981;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.4; transform: scale(0.85); }
+    }
+
+    /* Main Content Container */
+    main {
+      flex: 1;
+      padding: 28px;
+      max-width: 1600px;
+      width: 100%;
+      margin: 0 auto;
+      z-index: 10;
+    }
+
+    /* Filter Bar */
+    .filter-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      gap: 16px;
+    }
+
+    .filter-chips {
+      display: flex;
+      gap: 8px;
+    }
+
+    .chip {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 6px 14px;
+      border-radius: var(--radius-sm);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .chip:hover {
+      background: var(--bg-surface-elevated);
+      color: var(--text-main);
+    }
+
+    .chip.active {
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      border-color: var(--primary);
+    }
+
+    .section-title {
+      font-size: 20px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title .count {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-dim);
+      background: var(--bg-surface);
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+    }
+
+    /* Grid Layouts */
+    .media-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 20px;
+    }
+
+    /* Card Item */
+    .media-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+
+    .media-card:hover {
+      transform: translateY(-6px);
+      border-color: var(--border-active);
+      box-shadow: 0 12px 24px -8px var(--primary-glow);
+    }
+
+    .card-poster-wrap {
+      position: relative;
+      width: 100%;
+      padding-top: 142%; /* 1:1.42 Poster aspect ratio */
+      background: var(--bg-surface-elevated);
+      overflow: hidden;
+    }
+
+    .card-poster {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.35s ease;
+    }
+
+    .media-card:hover .card-poster {
+      transform: scale(1.05);
+    }
+
+    .card-badge {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      letter-spacing: 0.04em;
+      backdrop-filter: blur(8px);
+    }
+
+    .badge-anime {
+      background: rgba(139, 92, 246, 0.85);
+      color: #fff;
+    }
+
+    .badge-comic {
+      background: rgba(6, 182, 212, 0.85);
+      color: #fff;
+    }
+
+    .badge-drama {
+      background: rgba(236, 72, 153, 0.85);
+      color: #fff;
+    }
+
+    .card-unread {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      background: rgba(239, 68, 68, 0.9);
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 7px;
+      border-radius: var(--radius-full);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    }
+
+    .card-progress {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: rgba(0, 0, 0, 0.6);
+    }
+
+    .card-progress-fill {
+      height: 100%;
+      background: var(--primary);
+    }
+
+    .card-info {
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      flex: 1;
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 700;
+      line-height: 1.35;
+      color: var(--text-main);
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .card-source {
+      font-size: 11px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+      padding-top: 4px;
+    }
+
+    .card-time {
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    /* Modal Component */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(12px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+      padding: 24px;
+    }
+
+    .modal-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .modal-container {
+      background: var(--bg-surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 900px;
+      max-height: 90vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: var(--shadow-lg);
+      overflow: hidden;
+      transform: scale(0.95);
+      transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .modal-overlay.active .modal-container {
+      transform: scale(1);
+    }
+
+    .modal-header {
+      padding: 18px 24px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--bg-surface-elevated);
+    }
+
+    .modal-title {
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .btn-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 6px;
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s ease;
+    }
+
+    .btn-close:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .modal-body {
+      padding: 24px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Detail View */
+    .detail-hero {
+      display: flex;
+      gap: 24px;
+    }
+
+    .detail-poster {
+      width: 180px;
+      height: 250px;
+      object-fit: cover;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-sm);
+      flex-shrink: 0;
+    }
+
+    .detail-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+    }
+
+    .detail-title {
+      font-size: 22px;
+      font-weight: 800;
+      line-height: 1.25;
+    }
+
+    .detail-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .detail-tag {
+      font-size: 11px;
+      font-weight: 600;
+      background: var(--bg-surface-elevated);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: var(--radius-full);
+      border: 1px solid var(--border);
+    }
+
+    .detail-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.6;
+      max-height: 120px;
+      overflow-y: auto;
+    }
+
+    /* Episode & Chapter Grid */
+    .episodes-section h3 {
+      font-size: 15px;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .episodes-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+      gap: 10px;
+      max-height: 320px;
+      overflow-y: auto;
+      padding-right: 4px;
+    }
+
+    .ep-btn {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 10px 12px;
+      border-radius: var(--radius-sm);
+      font-family: inherit;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: left;
+      transition: all 0.2s ease;
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .ep-btn:hover {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+      transform: translateY(-2px);
+    }
+
+    .ep-btn .ep-date {
+      font-size: 10px;
+      color: var(--text-dim);
+    }
+
+    .ep-btn:hover .ep-date {
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Fullscreen Video Player Modal */
+    .player-modal-container {
+      max-width: 1400px;
+      height: 88vh;
+      background: #000;
+      display: flex;
+      flex-direction: row;
+    }
+
+    .player-video-wrap {
+      flex: 1;
+      background: #000;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .player-video-wrap video {
+      width: 100%;
+      height: 100%;
+      background: #000;
+      outline: none;
+    }
+
+    .player-sidebar {
+      width: 320px;
+      background: var(--bg-surface);
+      border-left: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .player-sidebar-header {
+      padding: 16px;
+      border-bottom: 1px solid var(--border);
+      font-size: 14px;
+      font-weight: 700;
+    }
+
+    .player-sidebar-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .player-ep-item {
+      padding: 10px 14px;
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-main);
+      transition: all 0.2s ease;
+    }
+
+    .player-ep-item:hover, .player-ep-item.active {
+      background: var(--primary);
+      color: #fff;
+      border-color: var(--primary);
+    }
+
+    /* Manga Webtoon Reader Modal */
+    .reader-modal-container {
+      max-width: 1000px;
+      height: 94vh;
+      background: #0a0e17;
+    }
+
+    .reader-top-controls {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px;
+      background: var(--bg-surface);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .reader-pages-container {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #000;
+      padding: 20px 0;
+      gap: 0px;
+    }
+
+    .reader-page-img {
+      max-width: 100%;
+      width: auto;
+      height: auto;
+      display: block;
+      margin: 0 auto;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+    }
+
+    .reader-loading-state {
+      padding: 60px;
+      text-align: center;
+      color: var(--text-muted);
+    }
+
+    /* Skeleton Loading Animation */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg-surface) 25%, var(--bg-surface-elevated) 50%, var(--bg-surface) 75%);
+      background-size: 200% 100%;
+      animation: skeleton-loading 1.5s infinite;
+      border-radius: var(--radius-sm);
+    }
+
+    @keyframes skeleton-loading {
+      0% { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Empty & Error States */
+    .empty-state {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 80px 20px;
+      text-align: center;
+      gap: 16px;
+      color: var(--text-muted);
+    }
+
+    .empty-state svg {
+      width: 64px;
+      height: 64px;
+      color: var(--text-dim);
+    }
+
+    .empty-state h3 {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+
+    .empty-state p {
+      font-size: 13px;
+      max-width: 400px;
+    }
+
+    /* Toast Notification */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      background: var(--bg-surface-elevated);
+      border: 1px solid var(--border-active);
+      color: var(--text-main);
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-lg);
+      font-size: 13px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      animation: slide-in 0.3s ease;
+    }
+
+    @keyframes slide-in {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 900px) {
+      header {
+        padding: 12px 16px;
+        flex-wrap: wrap;
+      }
+      .search-box {
+        width: 100%;
+      }
+      .search-box input:focus {
+        width: 100%;
+      }
+      .player-modal-container {
+        flex-direction: column;
+        height: 96vh;
+      }
+      .player-sidebar {
+        width: 100%;
+        height: 200px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header -->
+  <header>
+    <a href="#" class="brand" onclick="switchTab('library'); return false;">
+      <div class="brand-logo">O</div>
+      <div class="brand-text">
+        <h1>OtakuHub <span class="badge">Companion</span></h1>
+        <p>Direct Phone-to-PC Stream Engine</p>
+      </div>
+    </a>
+
+    <!-- Nav Tabs -->
+    <nav class="nav-tabs">
+      <button class="tab-btn active" id="tab-library" onclick="switchTab('library')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>
+        Perpustakaan
+      </button>
+      <button class="tab-btn" id="tab-history" onclick="switchTab('history')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        Riwayat Tonton
+      </button>
+      <button class="tab-btn" id="tab-search" onclick="switchTab('search')">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        Jelajah / Search
+      </button>
+    </nav>
+
+    <!-- Header Search & Connection Status -->
+    <div class="header-actions">
+      <div class="search-box">
+        <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        <input type="text" id="global-search-input" placeholder="Cari Anime, Manga, Drama..." onkeydown="handleSearchKey(event)">
+      </div>
+      <div class="status-badge" id="server-status-badge">
+        <span class="status-dot"></span>
+        <span id="server-ip-label">Connected</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main>
+    <!-- Filter Section -->
+    <div class="filter-bar">
+      <div class="section-title">
+        <span id="view-title">Perpustakaan Pribadi</span>
+        <span class="count" id="item-count">0</span>
+      </div>
+      <div class="filter-chips">
+        <button class="chip active" onclick="setCategoryFilter('ALL', this)">Semua</button>
+        <button class="chip" onclick="setCategoryFilter('ANIME', this)">Anime</button>
+        <button class="chip" onclick="setCategoryFilter('COMIC', this)">Komik / Manga</button>
+        <button class="chip" onclick="setCategoryFilter('DRAMA', this)">Drama</button>
+      </div>
+    </div>
+
+    <!-- Media Grid -->
+    <div class="media-grid" id="main-media-grid">
+      <!-- Media Cards injected by JS -->
+    </div>
+
+    <!-- Empty State Container -->
+    <div class="empty-state" id="empty-state" style="display: none;">
+      <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4"/></svg>
+      <h3 id="empty-title">Tidak ada item ditemukan</h3>
+      <p id="empty-desc">Perpustakaan Anda masih kosong. Simpan anime atau manga favorit Anda melalui aplikasi HP.</p>
+    </div>
+  </main>
+
+  <!-- Detail Modal -->
+  <div class="modal-overlay" id="detail-modal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <div class="modal-title" id="detail-modal-title">Detail Media</div>
+        <button class="btn-close" onclick="closeModal('detail-modal')">
+          <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="modal-body" id="detail-modal-body">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Video Player Modal -->
+  <div class="modal-overlay" id="player-modal">
+    <div class="modal-container player-modal-container">
+      <div class="player-video-wrap">
+        <video id="html5-player" controls autoplay playsinline></video>
+        <button class="btn-close" onclick="closePlayerModal()" style="position: absolute; top: 16px; right: 16px; z-index: 20; background: rgba(0,0,0,0.6);">
+          <svg width="24" height="24" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="player-sidebar">
+        <div class="player-sidebar-header">Daftar Episode / Server</div>
+        <div class="player-sidebar-list" id="player-episodes-list">
+          <!-- Episodes injected by JS -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Manga Web Reader Modal -->
+  <div class="modal-overlay" id="reader-modal">
+    <div class="modal-container reader-modal-container">
+      <div class="reader-top-controls">
+        <div style="font-weight: 700; font-size: 14px;" id="reader-chapter-title">Manga Reader</div>
+        <div style="display: flex; gap: 10px; align-items: center;">
+          <button class="chip" onclick="toggleReaderFitMode()">Fit Width / Full</button>
+          <button class="btn-close" onclick="closeReaderModal()">
+            <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="reader-pages-container" id="reader-pages">
+        <!-- Chapter Pages Images injected by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Application Logic JS -->
+  <script>
+    let currentTab = 'library';
+    let currentCategory = 'ALL';
+    let libraryData = [];
+    let historyData = [];
+    let searchData = [];
+    let activeMediaDetail = null;
+    let currentEpisodeId = null;
+    let hlsInstance = null;
+    let progressInterval = null;
+
+    // Initialize Web Companion App
+    window.addEventListener('DOMContentLoaded', () => {
+      fetchServerStatus();
+      loadLibrary();
+      setupKeyboardShortcuts();
+    });
+
+    // Check Server Status
+    async function fetchServerStatus() {
+      try {
+        const res = await fetch('/api/status');
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('server-ip-label').innerText = `${data.ip || 'LAN'}:${data.port || '8080'}`;
+        }
+      } catch (e) {
+        document.getElementById('server-ip-label').innerText = 'Online';
+      }
+    }
+
+    // Tab Navigation
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      const activeBtn = document.getElementById(`tab-${tab}`);
+      if (activeBtn) activeBtn.classList.add('active');
+
+      const titleMap = {
+        'library': 'Perpustakaan Pribadi',
+        'history': 'Riwayat Tonton & Baca',
+        'search': 'Hasil Pencarian Katalog'
+      };
+      document.getElementById('view-title').innerText = titleMap[tab] || 'Katalog';
+
+      if (tab === 'library') loadLibrary();
+      else if (tab === 'history') loadHistory();
+      else if (tab === 'search') renderSearch();
+    }
+
+    // Category Filter (Anime / Comic / Drama / All)
+    function setCategoryFilter(category, chipElement) {
+      currentCategory = category;
+      document.querySelectorAll('.filter-chips .chip').forEach(c => c.classList.remove('active'));
+      chipElement.classList.add('active');
+      renderCurrentGrid();
+    }
+
+    // Fetch Library Items
+    async function loadLibrary() {
+      renderSkeletons(12);
+      try {
+        const res = await fetch('/api/library');
+        if (res.ok) {
+          libraryData = await res.json();
+          renderCurrentGrid();
+        } else {
+          showEmptyState('Gagal Memuat Perpustakaan', 'Terjadi kesalahan saat memanggil database HP.');
+        }
+      } catch (e) {
+        showEmptyState('Koneksi Terputus', 'Pastikan HP dan PC berada di jaringan Wi-Fi yang sama.');
+      }
+    }
+
+    // Fetch History Items
+    async function loadHistory() {
+      renderSkeletons(12);
+      try {
+        const res = await fetch('/api/history');
+        if (res.ok) {
+          historyData = await res.json();
+          renderCurrentGrid();
+        } else {
+          showEmptyState('Gagal Memuat Riwayat', 'Terjadi kesalahan saat mengambil riwayat.');
+        }
+      } catch (e) {
+        showEmptyState('Koneksi Terputus', 'Gagal menyambung ke server HP.');
+      }
+    }
+
+    // Global Search Execution
+    async function handleSearchKey(event) {
+      if (event.key === 'Enter') {
+        const query = event.target.value.trim();
+        if (!query) return;
+        switchTab('search');
+        renderSkeletons(12);
+        document.getElementById('view-title').innerText = `Pencarian: "${query}"`;
+        try {
+          const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+          if (res.ok) {
+            searchData = await res.json();
+            renderCurrentGrid();
+          } else {
+            showEmptyState('Pencarian Gagal', 'Server scraper tidak merespons.');
+          }
+        } catch (e) {
+          showEmptyState('Pencarian Gagal', 'Terjadi masalah jaringan saat menghubungi HP.');
+        }
+      }
+    }
+
+    // Render Current Tab Grid with Filter
+    function renderCurrentGrid() {
+      let items = [];
+      if (currentTab === 'library') items = libraryData;
+      else if (currentTab === 'history') items = historyData;
+      else if (currentTab === 'search') items = searchData;
+
+      // Filter by Type
+      if (currentCategory !== 'ALL') {
+        items = items.filter(item => {
+          const type = (item.type || item.contentType || '').toUpperCase();
+          return type.includes(currentCategory);
+        });
+      }
+
+      document.getElementById('item-count').innerText = items.length;
+
+      const grid = document.getElementById('main-media-grid');
+      const emptyState = document.getElementById('empty-state');
+
+      if (items.length === 0) {
+        grid.innerHTML = '';
+        emptyState.style.display = 'flex';
+        return;
+      }
+
+      emptyState.style.display = 'none';
+      grid.innerHTML = items.map(item => createMediaCard(item)).join('');
+    }
+
+    // Create Card HTML Component
+    function createMediaCard(item) {
+      const type = (item.type || item.contentType || 'ANIME').toUpperCase();
+      let badgeClass = 'badge-anime';
+      let typeLabel = 'Anime';
+
+      if (type.includes('COMIC') || type.includes('MANGA')) {
+        badgeClass = 'badge-comic';
+        typeLabel = 'Komik';
+      } else if (type.includes('DRAMA')) {
+        badgeClass = 'badge-drama';
+        typeLabel = 'Drama';
+      }
+
+      const imgUrl = item.imageUrl || item.thumbnailUrl || '';
+      // Route image via local server proxy to bypass Cloudflare / Referer hotlinking
+      const proxiedImg = imgUrl ? `/proxy/image?url=${encodeURIComponent(imgUrl)}&sourceId=${encodeURIComponent(item.sourceId || '')}` : '';
+
+      const unreadBadge = item.unreadCount > 0 ? `<div class="card-unread">${item.unreadCount}</div>` : '';
+      const progressPercent = item.progressPercent || (item.lastPosition && item.duration ? Math.round((item.lastPosition / item.duration) * 100) : 0);
+      const progressBar = progressPercent > 0 ? `<div class="card-progress"><div class="card-progress-fill" style="width: ${progressPercent}%"></div></div>` : '';
+
+      const id = item.mangaId || item.id || item.itemId || '';
+      const sourceId = item.sourceId || '';
+      const title = escapeHtml(item.title || 'Tanpa Judul');
+      const sourceName = escapeHtml(item.source || item.sourceName || sourceId || 'OtakuHub');
+
+      return `
+        <div class="media-card" onclick="openDetail('${encodeURIComponent(id)}', '${encodeURIComponent(sourceId)}', '${typeLabel}')">
+          <div class="card-poster-wrap">
+            <img class="card-poster" src="${proxiedImg}" alt="${title}" loading="lazy" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'100\' height=\'140\' fill=\'%231a2234\'><rect width=\'100\' height=\'140\'/><text x=\'50%\' y=\'50%\' fill=\'%2364748b\' font-size=\'12\' text-anchor=\'middle\'>No Poster</text></svg>'">
+            <div class="card-badge ${badgeClass}">${typeLabel}</div>
+            ${unreadBadge}
+            ${progressBar}
+          </div>
+          <div class="card-info">
+            <div class="card-title">${title}</div>
+            <div class="card-source">
+              <span>${sourceName}</span>
+              ${item.lastReadChapter ? `<span class="card-time">Ch. ${item.lastReadChapter}</span>` : ''}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    // Open Media Detail Modal & Fetch Chapters/Episodes
+    async function openDetail(encodedId, encodedSourceId, typeLabel) {
+      const id = decodeURIComponent(encodedId);
+      const sourceId = decodeURIComponent(encodedSourceId);
+
+      const modal = document.getElementById('detail-modal');
+      const body = document.getElementById('detail-modal-body');
+      modal.classList.add('active');
+
+      body.innerHTML = `
+        <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+          <div class="skeleton" style="height: 200px; width: 100%; margin-bottom: 20px;"></div>
+          Memuat metadata & daftar episode dari server HP...
+        </div>
+      `;
+
+      try {
+        const res = await fetch(`/api/detail?id=${encodeURIComponent(id)}&sourceId=${encodeURIComponent(sourceId)}`);
+        if (res.ok) {
+          const detail = await res.json();
+          activeMediaDetail = detail;
+          renderDetailView(detail, typeLabel);
+        } else {
+          body.innerHTML = `<div style="padding: 40px; text-align: center; color: #ef4444;">Gagal mengambil data detail media.</div>`;
+        }
+      } catch (e) {
+        body.innerHTML = `<div style="padding: 40px; text-align: center; color: #ef4444;">Koneksi error ke server HP.</div>`;
+      }
+    }
+
+    // Render Media Detail Content inside Modal
+    function renderDetailView(detail, typeLabel) {
+      const body = document.getElementById('detail-modal-body');
+      const proxiedImg = detail.imageUrl ? `/proxy/image?url=${encodeURIComponent(detail.imageUrl)}&sourceId=${encodeURIComponent(detail.sourceId || '')}` : '';
+      const isComic = (detail.type || '').toUpperCase().includes('COMIC') || typeLabel === 'Komik';
+
+      const chapters = detail.chapters || [];
+      const episodesHtml = chapters.map(ep => {
+        const epTitle = escapeHtml(ep.title || `Episode ${ep.number || ''}`);
+        const epDate = ep.date ? `<span class="ep-date">${ep.date}</span>` : '';
+        const clickHandler = isComic
+          ? `openMangaReader('${encodeURIComponent(detail.sourceId)}', '${encodeURIComponent(ep.id || ep.url)}', '${encodeURIComponent(epTitle)}')`
+          : `openVideoPlayer('${encodeURIComponent(detail.sourceId)}', '${encodeURIComponent(ep.id || ep.url)}', '${encodeURIComponent(epTitle)}')`;
+
+        return `
+          <button class="ep-btn" onclick="${clickHandler}">
+            <span>${epTitle}</span>
+            ${epDate}
+          </button>
+        `;
+      }).join('');
+
+      body.innerHTML = `
+        <div class="detail-hero">
+          <img class="detail-poster" src="${proxiedImg}" alt="${escapeHtml(detail.title)}">
+          <div class="detail-meta">
+            <h2 class="detail-title">${escapeHtml(detail.title)}</h2>
+            <div class="detail-tags">
+              <span class="detail-tag" style="color: #818cf8;">${detail.source || detail.sourceId}</span>
+              <span class="detail-tag">${detail.status || 'Ongoing'}</span>
+              ${(detail.genres || []).map(g => `<span class="detail-tag">${escapeHtml(g)}</span>`).join('')}
+            </div>
+            <div class="detail-desc">${escapeHtml(detail.description || 'Tidak ada sinopsis tersedia.')}</div>
+          </div>
+        </div>
+        <div class="episodes-section">
+          <h3>${isComic ? 'Daftar Chapter' : 'Daftar Episode'} (${chapters.length})</h3>
+          <div class="episodes-grid">
+            ${episodesHtml || '<div style="color: var(--text-dim);">Tidak ada chapter/episode ditemukan.</div>'}
+          </div>
+        </div>
+      `;
+    }
+
+    // Open HTML5 / HLS Video Player
+    async function openVideoPlayer(encodedSourceId, encodedEpisodeId, encodedTitle) {
+      const sourceId = decodeURIComponent(encodedSourceId);
+      const episodeId = decodeURIComponent(encodedEpisodeId);
+      const title = decodeURIComponent(encodedTitle);
+
+      closeModal('detail-modal');
+      const playerModal = document.getElementById('player-modal');
+      playerModal.classList.add('active');
+
+      const video = document.getElementById('html5-player');
+      video.pause();
+      video.src = '';
+
+      showToast(`Menghubungkan stream: ${title}...`);
+
+      // Populate Player Sidebar Episodes
+      if (activeMediaDetail && activeMediaDetail.chapters) {
+        const sidebar = document.getElementById('player-episodes-list');
+        sidebar.innerHTML = activeMediaDetail.chapters.map(ep => {
+          const isActive = ep.id === episodeId || ep.url === episodeId;
+          return `
+            <div class="player-ep-item ${isActive ? 'active' : ''}" onclick="openVideoPlayer('${encodedSourceId}', '${encodeURIComponent(ep.id || ep.url)}', '${encodeURIComponent(ep.title)}')">
+              ${escapeHtml(ep.title || 'Episode')}
+            </div>
+          `;
+        }).join('');
+      }
+
+      try {
+        const res = await fetch(`/api/stream?sourceId=${encodeURIComponent(sourceId)}&episodeId=${encodeURIComponent(episodeId)}`);
+        if (res.ok) {
+          const streamInfo = await res.json();
+          const targetUrl = streamInfo.videoUrl || (streamInfo.qualities && streamInfo.qualities[0] ? streamInfo.qualities[0].url : '');
+
+          if (!targetUrl) {
+            showToast('Tidak ada stream video yang valid.');
+            return;
+          }
+
+          // Proxy the video stream through local Android server to bypass CORS & Cloudflare
+          const proxyStreamUrl = `/proxy/stream?url=${encodeURIComponent(targetUrl)}&sourceId=${encodeURIComponent(sourceId)}`;
+
+          if (targetUrl.includes('.m3u8') && Hls.isSupported()) {
+            if (hlsInstance) hlsInstance.destroy();
+            hlsInstance = new Hls({
+              enableWorker: true,
+              lowLatencyMode: true
+            });
+            hlsInstance.loadSource(proxyStreamUrl);
+            hlsInstance.attachMedia(video);
+            hlsInstance.on(Hls.Events.MANIFEST_PARSED, () => {
+              video.play().catch(() => {});
+            });
+          } else {
+            video.src = proxyStreamUrl;
+            video.play().catch(() => {});
+          }
+
+          currentEpisodeId = episodeId;
+          startProgressSync(sourceId, activeMediaDetail ? activeMediaDetail.id : '', episodeId);
+        } else {
+          showToast('Gagal memuat URL video stream.');
+        }
+      } catch (e) {
+        showToast('Error koneksi saat mengekstrak video.');
+      }
+    }
+
+    // Open Manga Reader
+    async function openMangaReader(encodedSourceId, encodedChapterId, encodedTitle) {
+      const sourceId = decodeURIComponent(encodedSourceId);
+      const chapterId = decodeURIComponent(encodedChapterId);
+      const title = decodeURIComponent(encodedTitle);
+
+      closeModal('detail-modal');
+      const readerModal = document.getElementById('reader-modal');
+      readerModal.classList.add('active');
+
+      document.getElementById('reader-chapter-title').innerText = title;
+      const pagesContainer = document.getElementById('reader-pages');
+      pagesContainer.innerHTML = `<div class="reader-loading-state">Memuat halaman bab...</div>`;
+
+      try {
+        const res = await fetch(`/api/manga/pages?sourceId=${encodeURIComponent(sourceId)}&chapterId=${encodeURIComponent(chapterId)}`);
+        if (res.ok) {
+          const pages = await res.json();
+          if (pages.length === 0) {
+            pagesContainer.innerHTML = `<div class="reader-loading-state">Tidak ada gambar ditemukan untuk bab ini.</div>`;
+            return;
+          }
+
+          pagesContainer.innerHTML = pages.map((page, idx) => {
+            const pageUrl = page.imageUrl || page.url || page;
+            const proxiedUrl = `/proxy/image?url=${encodeURIComponent(pageUrl)}&sourceId=${encodeURIComponent(sourceId)}`;
+            return `
+              <img class="reader-page-img" src="${proxiedUrl}" alt="Page ${idx + 1}" loading="lazy" onerror="this.style.display='none'">
+            `;
+          }).join('');
+
+          // Report Read Progress to Phone Room DB
+          reportProgress(sourceId, activeMediaDetail ? activeMediaDetail.id : '', chapterId, 1, 1);
+        } else {
+          pagesContainer.innerHTML = `<div class="reader-loading-state" style="color: #ef4444;">Gagal mengambil gambar bab.</div>`;
+        }
+      } catch (e) {
+        pagesContainer.innerHTML = `<div class="reader-loading-state" style="color: #ef4444;">Koneksi terputus ke HP.</div>`;
+      }
+    }
+
+    // Start Auto Progress Sync for Video
+    function startProgressSync(sourceId, mangaId, episodeId) {
+      if (progressInterval) clearInterval(progressInterval);
+      const video = document.getElementById('html5-player');
+      progressInterval = setInterval(() => {
+        if (!video.paused && video.currentTime > 0) {
+          reportProgress(sourceId, mangaId, episodeId, Math.round(video.currentTime), Math.round(video.duration || 0));
+        }
+      }, 5000);
+    }
+
+    // Send Progress Sync POST Request
+    async function reportProgress(sourceId, mangaId, itemId, position, duration) {
+      try {
+        await fetch('/api/progress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourceId: sourceId,
+            mangaId: mangaId,
+            itemId: itemId,
+            position: position,
+            duration: duration,
+            timestamp: Date.now()
+          })
+        });
+      } catch (_) {}
+    }
+
+    // Close Modals
+    function closeModal(modalId) {
+      document.getElementById(modalId).classList.remove('active');
+    }
+
+    function closePlayerModal() {
+      const video = document.getElementById('html5-player');
+      video.pause();
+      video.src = '';
+      if (hlsInstance) {
+        hlsInstance.destroy();
+        hlsInstance = null;
+      }
+      if (progressInterval) clearInterval(progressInterval);
+      closeModal('player-modal');
+    }
+
+    function closeReaderModal() {
+      closeModal('reader-modal');
+    }
+
+    function toggleReaderFitMode() {
+      const imgs = document.querySelectorAll('.reader-page-img');
+      imgs.forEach(img => {
+        if (img.style.maxWidth === '100%') {
+          img.style.maxWidth = '750px';
+        } else {
+          img.style.maxWidth = '100%';
+        }
+      });
+    }
+
+    // Skeletons Renderer for smooth loading
+    function renderSkeletons(count) {
+      const grid = document.getElementById('main-media-grid');
+      grid.innerHTML = Array(count).fill(0).map(() => `
+        <div class="media-card">
+          <div class="card-poster-wrap skeleton"></div>
+          <div class="card-info">
+            <div class="skeleton" style="height: 14px; width: 85%; margin-bottom: 6px;"></div>
+            <div class="skeleton" style="height: 10px; width: 50%;"></div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    // Show Toast
+    function showToast(message) {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = 'toast';
+      toast.innerHTML = `<span>⚡</span><span>${escapeHtml(message)}</span>`;
+      container.appendChild(toast);
+      setTimeout(() => {
+        toast.remove();
+      }, 3500);
+    }
+
+    // Show Empty State Helper
+    function showEmptyState(title, desc) {
+      document.getElementById('main-media-grid').innerHTML = '';
+      const emptyState = document.getElementById('empty-state');
+      document.getElementById('empty-title').innerText = title;
+      document.getElementById('empty-desc').innerText = desc;
+      emptyState.style.display = 'flex';
+    }
+
+    // Keyboard Shortcuts (Space to toggle play, F for fullscreen, Arrows for seek)
+    function setupKeyboardShortcuts() {
+      window.addEventListener('keydown', (e) => {
+        const playerModal = document.getElementById('player-modal');
+        if (playerModal.classList.contains('active')) {
+          const video = document.getElementById('html5-player');
+          if (e.code === 'Space') {
+            e.preventDefault();
+            if (video.paused) video.play(); else video.pause();
+          } else if (e.code === 'ArrowRight') {
+            video.currentTime += 10;
+          } else if (e.code === 'ArrowLeft') {
+            video.currentTime -= 10;
+          } else if (e.code === 'KeyF') {
+            if (!document.fullscreenElement) {
+              video.requestFullscreen().catch(() => {});
+            } else {
+              document.exitFullscreen().catch(() => {});
+            }
+          }
+        }
+      });
+    }
+
+    // Utility to Escape HTML
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+        if (currentSkip != null && !isInPip) {
+            Button(
+                onClick = { 
+                    currentSkip?.let {
+                        exoPlayer.seekTo((it.interval.endTime * 1000).toLong())
+                    }
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomEnd)
+                    .padding(end = 32.dp, bottom = 120.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f))
+            ) {
+                Text(
+                    text = when (currentSkip?.skipType) {
+                        "op" -> "Skip Intro"
+                        "ed" -> "Skip Outro"
+                        "recap" -> "Skip Recap"
+                        "mixed-op" -> "Skip Mixed OP"
+                        "mixed-ed" -> "Skip Mixed ED"
+                        else -> "Skip"
+                    }
+                )
+            }
+        }

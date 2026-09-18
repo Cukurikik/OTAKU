@@ -1,0 +1,12 @@
+    // AniSkip check
+    val skipTimes by viewModel.skipTimes.collectAsStateWithLifecycle()
+    var currentSkip by remember { mutableStateOf<com.example.data.trackers.AniSkipResult?>(null) }
+    
+    LaunchedEffect(exoPlayer, skipTimes) {
+        while(true) {
+            val posSec = exoPlayer.currentPosition / 1000f
+            val skip = skipTimes.find { posSec >= it.interval.startTime && posSec <= it.interval.endTime }
+            currentSkip = skip
+            delay(1000)
+        }
+    }

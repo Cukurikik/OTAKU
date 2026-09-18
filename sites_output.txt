@@ -1,0 +1,109 @@
+URL: https://v19.kuramanime.ing/
+  Status: SUCCESS
+  Title: Just a moment...
+  Cloudflare challenge detected!
+URL: https://v2.animasu.work/
+  Status: SUCCESS
+  Title: Animasu &#8226; Nonton Streaming &amp; Download Anime Subtitle Indonesia
+  Detected: WP Theme (MangaStream/AnimeStream)
+  Some classes: ['dashicons dashicons-external', 'tag-cloud-link tag-link-22 tag-link-position-4', 'menu-item menu-item-type-custom menu-item-object-custom menu-item-230132', 'typez TV', 'filter dropdown', 'tag-cloud-link tag-link-331 tag-link-position-20', 'menu-item menu-item-type-post_type menu-item-object-page menu-item-152005', 'menu', 'tag-cloud-link tag-link-76 tag-link-position-19', 'menu-item menu-item-type-custom menu-item-object-custom menu-item-224213']
+URL: https://nimegami.id/
+  Status: SUCCESS
+  Title: Nimegami - Tempat Download dan Nonton Anime Sub Indo
+  Detected: Custom/Generic Theme
+  Some classes: ['page-numbers current', 'info', 'menu-top-featured-container', 'has_sticky_post', 'menu-item menu-item-type-post_type menu-item-object-page menu-item-6364', 'support_by', 'menu-item menu-item-type-custom menu-item-object-custom menu-item-6365', 'rating', 'navigasi', 'menu-item menu-item-type-post_type menu-item-object-page menu-item-6362']
+URL: https://animemovies.org/
+  Status: SUCCESS
+  Title: AnimeMovies - Nonton Anime Sub Indo Gratis
+  Detected: Custom/Generic Theme
+  Some classes: ['slider-height relative w-full overflow-hidden bg-gray-950 rounded-xl', 'md:col-span-3', 'flex items-center gap-2', 'object-cover transition-transform duration-700 ease-out group-hover:scale-110', 'bg-black/70 backdrop-blur-sm text-[10px] text-cyan-300 px-2 py-0.5 rounded-md border border-cyan-500/20 font-medium', 'mt-2.5 px-0.5', 'absolute inset-0 bg-gradient-to-t from-cyan-950/70 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500', 'lucide lucide-chevron-left w-4 h-4', 'w-8 h-8 rounded-full border border-white/15 bg-white/5 hover:bg-cyan-500 hover:border-cyan-400 hover:shadow-lg hover:shadow-cyan-500/50 text-white flex items-center justify-center transition-all', 'lucide lucide-shield w-3.5 h-3.5']
+URL: https://stucknime.my.id/
+  Status: SUCCESS
+  Title: StuckNime - Nonton Anime Sub Indo Terlengkap &amp; Terbaru
+  Detected: Custom/Generic Theme
+  Some classes: ['group inline-flex flex-column w-full text-white', 'rounded-2xl border border-white/10 bg-gradient-to-br from-white/[0.06] via-white/[0.03] to-transparent p-4 md:p-6', 'text-xs font-semibold uppercase tracking-[0.2em] text-white/45', 'group flex items-center gap-2 rounded-xl border border-white/10 bg-gradient-to-r from-white/[0.08] to-white/[0.02] px-2.5 py-1.5 transition hover:border-yellow-400/50 hover:from-yellow-400/15 hover:to-white/[0.06] md:hidden lg:flex', 'min-w-0 flex flex-col gap-0.5', 'mb-4 flex items-center justify-between md:mb-5', 'lucide lucide-heart h-3.5 w-3.5 text-transparent', 'text-yellow-300', 'rounded-full', 'space-y-3 md:text-right']
+URL: https://ylnime.com/
+  Status: SUCCESS
+  Title: Nonton Anime Sub Indo HD Gratis - Streaming Anime Terlengkap 2026 | YLnime
+  Detected: Custom/Generic Theme
+  Some classes: ['fas fa-broadcast-tower me-1', 'col-md-3 col-6 mb-3', 'carousel-control-prev-icon', 'stretched-link', 'dw-item i2', 'fas fa-comments me-2 text-danger', 'carousel-item active', 'mb-1 small text-light opacity-75', 'position-absolute top-0 start-0 bg-success text-white px-2 py-1 m-2 rounded shadow', 'badge bg-success me-1']
+URL: https://s2.anime-kuindo.com/
+  Status: SUCCESS
+  Title: Animekuindo - Terbaru Nonton Anime Subtitle Indonesia Tanpa Iklan - Animekuindo - Nonton Anime Online Streaming Sub Indo Gratis Tanpa Iklan Terbaru Subtitle Indonesia 240p, 360p, 480p, 720p, 1080p
+  Detected: WP Theme (MangaStream/AnimeStream)
+  Some classes: ['menu-item menu-item-type-post_type menu-item-object-page menu-item-2612', 'menu-item menu-item-type-post_type menu-item-object-page menu-item-6213', 'cookieadmin_reconsent_img', 'typez TV', 'leftseries', 'rtp', 'cookieadmin_cookie_modal', 'srcmob srccls', 'menu-item menu-item-type-post_type menu-item-object-page menu-item-16', 'bloglist']
+URL: https://wibuku.id/
+  Status: SUCCESS
+  Title: Wibuku: Situs Nonton Anime Subtitle Indonesia Terlengkap
+  Detected: Custom/Generic Theme
+  Some classes: ['ultp-block-slider-wrap', 'wp-image-209', 'ultp-block-item ultp-block-media post-id-270', 'ultp-block-item ultp-block-media post-id-51', 'ultp-block-content-wrap ultp-first-postlist-2', 'ultp-loading-blocks', 'ultp-slick-nav', 'ultp-row-wrapper', 'wp-block-ultimate-post-ultp-taxonomy ultp-block-29f3ff ', 'wp-block-ultimate-post-social ultp-block-318b4c']
+URL: https://myanimeku.com/
+  Status: SUCCESS
+  Title: Myanimeku | Nonton dan Streaming Anime BD Subtitle Indonesia
+  Detected: Custom/Generic Theme
+  Some classes: ['stealth-nav', 'yore-main-footer mt-10', 'kuntul211', 'poster-overlay', 'meta-pill uppercase', 'h106k2wx', 'skeleton', 's1fcfu8k', 'flex flex-wrap items-center gap-2 text-xs text-gray-400', 'anime-card-badgebar-v1']
+URL: https://kuronime.sbs/
+  Status: SUCCESS
+  Title: Kuronime - Nonton Streaming Anime Subtitle Indonesia
+  Detected: WP Theme (MangaStream/AnimeStream)
+  Some classes: ['page-numbers current', 'annx', 'post-views content-post post-199697 entry-meta load-static', 'rank-math-schema-pro', 'leftseries', 'menu', 'menu-item menu-item-type-post_type menu-item-object-page menu-item-87383', 'rating', 'box_item_berlangganan_popup', 'dashicons dashicons-star-empty']
+URL: https://animeindo.me/
+  Status: SUCCESS
+  Title: Animeindo - Nonton Streaming Anime Subtitle Indonesia Update Terbaru dan Terlengkap
+  Detected: WP Theme (MangaStream/AnimeStream)
+  Some classes: ['typez TV', 'rank-math-schema-pro', 'leftseries', 'rtp', 'srcmob srccls', 'menu', 'series-gen', 'menu-item menu-item-type-post_type menu-item-object-page menu-item-1463', 'tip', 'rating']
+URL: https://animasuid.com/
+  Status: SUCCESS
+  Title: ANIMASU ID | Situs Wibu Nonton Anime Sub Indo Terlengkap 2025
+  Detected: Custom/Generic Theme
+  Some classes: ['page-numbers current', 'instagram', 'widget idmuvi-rp-widget', 'custom-logo-link', 'responsive-searchbtn pull-right', 'gmr-bgstripes', 'youtube', 'site inner-wrap', 'idmuvi-rp', 'gmr-logo']
+URL: https://154.203.167.17/
+  Status: SUCCESS
+  Title: No Title
+  Detected: Custom/Generic Theme
+  Some classes: []
+URL: https://meownime.net/
+  Status: SUCCESS
+  Title: Meownime - Download &amp; Streaming Anime Subtitle Indonesia
+  Detected: Custom/Generic Theme
+  Some classes: ['scene-mode-toggle', 'btn-load-more', 'card-year', 'load-more-container', 'fa-solid fa-magnifying-glass', 'card-thumb', 'card-type card-type-ona', 'card-info', 'fa-solid fa-bars', 'footer-links']
+URL: https://nontonanimeid.my.id/
+  Status: SUCCESS
+  Title: Nonton Anime ID | Watch Anime &amp; Donghua Sub Indo
+  Detected: WP Theme (MangaStream/AnimeStream)
+  Some classes: ['typez TV', 'filter dropdown', 'typez Donghua', 'leftseries', 'rtp', 'menu-item menu-item-type-custom menu-item-object-custom menu-item-158', 'menu-item menu-item-type-custom menu-item-object-custom current-menu-item current_page_item menu-item-31', 'menu-item menu-item-type-custom menu-item-object-custom menu-item-8341', 'menu', 'series-gen']
+URL: https://otakupoi.org/
+  Status: SUCCESS
+  Title: OtakuPoi | Portal Web Download dan Streaming Anime Subtitle Indonesia
+  Detected: Custom/Generic Theme
+  Some classes: ['center txtld', 'center', 'acgstrm', 'switchld', 'sa-overlay', 'scx hide', 'dropdown', 'sa-title', 'footer bg-lg center', 'contpt']
+URL: https://animeku.info/
+  Status: SUCCESS
+  Title: Animeku - Nonton Anime Sub Indo
+  Detected: Custom/Generic Theme
+  Some classes: ['section-header', 'logo-icon', 'footer-title', 'hero', 'section-link', 'logo-text', 'footer-grid', 'section', 'anime-card-image', 'badge-episode']
+URL: https://miranime.net/
+  Status: SUCCESS
+  Title: Miranime — Nonton Anime Sub Indo Terlengkap
+  Detected: Custom/Generic Theme
+  Some classes: ['container flex h-[72px] items-center justify-between gap-4', 'group/button inline-flex shrink-0 items-center justify-center bg-clip-padding whitespace-nowrap outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg:not([class*=&#x27;size-&#x27;])]:size-4 aria-expanded:bg-secondary aria-expanded:text-secondary-foreground has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 gap-2 rounded-xl backdrop-blur-xl bg-white/10 hover:bg-white/20 border border-white/10 text-white font-black text-xs sm:text-sm px-5 sm:px-7 h-10 sm:h-12 transition-all duration-200', 'lucide lucide-mail h-4 w-4', 'group/button inline-flex shrink-0 items-center justify-center border bg-clip-padding whitespace-nowrap outline-none select-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:not-aria-[haspopup]:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-3 aria-invalid:ring-destructive/20 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg:not([class*=&#x27;size-&#x27;])]:size-4 bg-background aria-expanded:bg-muted aria-expanded:text-foreground dark:bg-input/30 dark:hover:bg-input/50 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2 w-full rounded-xl font-bold h-10 text-xs gap-1.5 border-border/40 dark:border-white/[0.04] hover:bg-primary/10 hover:text-primary transition-all', 'lucide lucide-info h-4 w-4', 'flex items-center justify-between pb-3 mb-8 border-b border-primary/40', 'lucide lucide-send h-4 w-4', 'flex items-center gap-2', 'lucide lucide-code h-4 w-4', 'lucide lucide-search absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none text-white/70']
+URL: https://gomunime.top/
+  Status: SUCCESS
+  Title: Gomunime — Nonton Anime Sub Indo Gratis Streaming HD
+  Detected: Custom/Generic Theme
+  Some classes: ['md:col-span-3', 'text-ink-100', 'text-xs sm:text-sm font-semibold text-white line-clamp-1 sm:line-clamp-2', 'flex items-center gap-1.5 pt-1', 'w-4 h-4 translate-x-0.5', 'btn-secondary text-sm md:text-base px-5 md:px-7 py-2.5 md:py-3', 'text-ink-300', 'container-x w-full pb-6 md:pb-0', 'badge bg-green-500 text-black', 'hidden sm:flex flex-wrap gap-x-3 gap-y-1 text-sm text-white/90']
+URL: https://alqanime.si/
+  Status: SUCCESS
+  Title: Alqanime - Nonton Streaming Anime Sub Indo
+  Detected: WP Theme (MangaStream/AnimeStream)
+  Some classes: ['typez TV', 'filter dropdown', 'leftseries', 'rtp', 'srcmob srccls', 'menu', 'series-gen', 'tip', 'btn btn-custom-search', 'fa fa-angle-down']
+URL: https://v1.nimeindo.org/
+  Status: SUCCESS
+  Title: Nimeindo &raquo; Nonton Streaming Anime Subtitle Indonesia
+  Detected: WP Theme (MangaStream/AnimeStream)
+  Some classes: ['typez TV', 'eggepisode', 'rank-math-schema-pro', 'leftseries', 'menu-item menu-item-type-post_type menu-item-object-page menu-item-683', 'srcmob srccls', 'menu-item menu-item-type-post_type menu-item-object-page menu-item-16', 'menu', 'eggtitle', 'menu-item menu-item-type-post_type menu-item-object-page menu-item-163585']
+URL: https://subnime.id/
+  Status: SUCCESS
+  Title: Subnime | Situs Nonton Anime &amp; Donghua Sub Indo Terlengkap
+  Detected: Custom/Generic Theme
+  Some classes: ['footer-description lowercase mb-2', 'fas fa-user-plus mr-2 text-base', 'load-more-btn', 'anime-title', 'hentong-overlay-18', 'result-item', 'col-span-1 md:col-span-2', 'search-overlay', 'sticker-modal hidden', 'menu-button ']

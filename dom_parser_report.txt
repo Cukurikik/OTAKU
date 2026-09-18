@@ -1,0 +1,238 @@
+
+=========================================
+ TESTING: Kuramanime (https://v19.kuramanime.ing/)
+=========================================
+  [BLOCKED] Cloudflare challenge active.
+
+=========================================
+ TESTING: Animasu (https://v2.animasu.work/)
+=========================================
+  CSS Selector '.bsx' matched 20 items.
+  First Card Parsed Details:
+    - Title: Unknown
+    - Image: https://i3.wp.com/v2.animasu.work/wp-content/uploads/2026/07/156343.jpg
+    - Link: https://v2.animasu.work/anime/sayonara-lara/
+  Fetching detail page: https://v2.animasu.work/anime/sayonara-lara/...
+  CSS Selector '.eplister li' matched 0 items.
+  [SUCCESS] Found 2 video iframes directly on detail page.
+
+=========================================
+ TESTING: Animasu Movie (https://v2.animasu.work/anime-movie/)
+=========================================
+  CSS Selector '.bsx' matched 10 items.
+  First Card Parsed Details:
+    - Title: Unknown
+    - Image: https://i0.wp.com/v2.animasu.work/wp-content/uploads/2026/07/154288.jpg
+    - Link: https://v2.animasu.work/anime/ansatsu-kyoushitsu-movie-minna-no-jikan/
+  Fetching detail page: https://v2.animasu.work/anime/ansatsu-kyoushitsu-movie-minna-no-jikan/...
+  CSS Selector '.eplister li' matched 0 items.
+  [SUCCESS] Found 2 video iframes directly on detail page.
+
+=========================================
+ TESTING: Nimegami (https://nimegami.id/)
+=========================================
+  CSS Selector 'article' matched 17 items.
+  First Card Parsed Details:
+    - Title: Girls & Panzer: Motto Love Love Sakusen desu!
+    - Image: https://nimegami.id/wp-content/uploads/2026/08/Girls-Panzer-Motto-Love-Love-Sakusen-desu-Sub-Indo1.jpg
+    - Link: https://nimegami.id/girls-panzer-motto-love-love-sakusen-desu-sub-indo/
+  Fetching detail page: https://nimegami.id/girls-panzer-motto-love-love-sakusen-desu-sub-indo/...
+  Nimegami Specific check: Found 5 select-eps items.
+  [SUCCESS] Verified Nimegami base64 stream episodes.
+
+=========================================
+ TESTING: AnimeMovies (https://animemovies.org/)
+=========================================
+  CSS Selector '.bsx' matched 0 items.
+  [FALLBACK] Selector 'article' matched 0 items.
+  [FAILED] No cards found on homepage.
+
+=========================================
+ TESTING: Stucknime (https://stucknime.my.id/)
+=========================================
+  CSS Selector '.bsx' matched 0 items.
+  [FALLBACK] Selector 'article' matched 0 items.
+  [FAILED] No cards found on homepage.
+
+=========================================
+ TESTING: YlNime (https://ylnime.com/)
+=========================================
+  CSS Selector '.bsx' matched 0 items.
+  [FALLBACK] Selector 'article' matched 0 items.
+  [FAILED] No cards found on homepage.
+
+=========================================
+ TESTING: Anime Kuindo (https://s2.anime-kuindo.com/)
+=========================================
+  CSS Selector 'article' matched 71 items.
+  First Card Parsed Details:
+    - Title: Black Clover Episode 170 Subtitle Indonesia (Selesai)
+    - Image: https://i2.wp.com/s2.anime-kuindo.com/wp-content/uploads/2025/02/1740714035-4171-88336.jpg?resize=247,350
+    - Link: https://s2.anime-kuindo.com/black-clover-episode-170-subtitle-indonesia-selesai/
+  Fetching detail page: https://s2.anime-kuindo.com/black-clover-episode-170-subtitle-indonesia-selesai/...
+  CSS Selector '.eplister li' matched 0 items.
+  [SUCCESS] Found 2 video iframes directly on detail page.
+
+=========================================
+ TESTING: Wibuku (https://wibuku.id/)
+=========================================
+  CSS Selector '.ultp-block-item' matched 21 items.
+  First Card Parsed Details:
+    - Title: New on Wibuku
+    - Image: https://wibuku.id/wp-content/uploads/2025/07/kaijuu-no8-season-2-750x570.webp
+    - Link: https://wibuku.id/new-on-wibuku/kaiju-no-8-season-2/
+  Fetching detail page: https://wibuku.id/new-on-wibuku/kaiju-no-8-season-2/...
+  CSS Selector '.episodelist li' matched 0 items.
+  [SUCCESS] Found 1 video iframes directly on detail page.
+
+=========================================
+ TESTING: MyAnimeku (https://myanimeku.com/)
+=========================================
+  CSS Selector '.anime-card' matched 34 items.
+  First Card Parsed Details:
+    - Title: Unknown
+    - Image: https://cdn.myanimelist.net/images/anime/1437/115925l.jpg
+    - Link: 
+  [FAILED] Could not resolve a valid detail link from the card.
+
+=========================================
+ TESTING: Kuronime (https://kuronime.sbs/)
+=========================================
+  CSS Selector '.bsx' matched 10 items.
+  First Card Parsed Details:
+    - Title: Kakusei Hunter Omegahorn
+    - Image: https://kuronime.sbs/wp-content/themes/animenonton/assets/images/controls-play.svg
+    - Link: https://kuronime.sbs/anime/kakusei-hunter-omegahorn/
+  Fetching detail page: https://kuronime.sbs/anime/kakusei-hunter-omegahorn/...
+  CSS Selector '.eplister li' matched 0 items.
+  [SUCCESS] Found 1 video iframes directly on detail page.
+
+=========================================
+ TESTING: AnimeIndo (https://animeindo.me/)
+=========================================
+  CSS Selector '.bsx' matched 46 items.
+  First Card Parsed Details:
+    - Title: One Piece Episode 1173 Sub Indo
+    - Image: data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNDciIGhlaWdodD0iMzUwIiB2aWV3Qm94PSIwIDAgMjQ3IDM1MCI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgc3R5bGU9ImZpbGw6I2NmZDRkYjtmaWxsLW9wYWNpdHk6IDAuMTsiLz48L3N2Zz4=
+    - Link: https://animeindo.me/one-piece-episode-1173-sub-indo/
+  Fetching detail page: https://animeindo.me/one-piece-episode-1173-sub-indo/...
+  CSS Selector '.eplister li' matched 0 items.
+  [SUCCESS] Found 1 video iframes directly on detail page.
+
+=========================================
+ TESTING: Animasu ID (https://animasuid.com/)
+=========================================
+  CSS Selector 'article' matched 15 items.
+  First Card Parsed Details:
+    - Title: Daemons of the Shadow Realm
+    - Image: https://animasuid.com/wp-content/uploads/2026/08/vIE1llfr1lcmzlsV4xn8vhgtlQN-152x228.jpg
+    - Link: https://animasuid.com/tv/daemons-of-the-shadow-realm/
+  Fetching detail page: https://animasuid.com/tv/daemons-of-the-shadow-realm/...
+  CSS Selector '.eplister li' matched 0 items.
+  [SUCCESS] Found 1 video iframes directly on detail page.
+
+=========================================
+ TESTING: IP 154 (http://154.203.167.17/)
+=========================================
+  CSS Selector 'article' matched 0 items.
+  [FALLBACK] Selector 'article' matched 0 items.
+  [FAILED] No cards found on homepage.
+
+=========================================
+ TESTING: Meownime Net (https://meownime.net/)
+=========================================
+  CSS Selector '.anime-card' matched 20 items.
+  First Card Parsed Details:
+    - Title: Unknown
+    - Image: None
+    - Link: https://meownime.net/harem-shima-e-youkoso
+  Fetching detail page: https://meownime.net/harem-shima-e-youkoso...
+  CSS Selector '.episodelist li' matched 0 items.
+  [WARNING] No episodes found.
+
+=========================================
+ TESTING: NontonAnimeID (https://nontonanimeid.my.id/)
+=========================================
+  CSS Selector '.bsx' matched 47 items.
+  First Card Parsed Details:
+    - Title: Renegade Immortal – Episode 153 [Subtitle Indonesia]
+    - Image: https://i3.wp.com/nontonanimeid.my.id/wp-content/uploads/2025/06/Renegade-Immortal-Ascendant-768x1077-1.jpg?resize=247,350
+    - Link: https://nontonanimeid.my.id/renegade-immortal-episode-153-subtitle-indonesia/
+  Fetching detail page: https://nontonanimeid.my.id/renegade-immortal-episode-153-subtitle-indonesia/...
+  CSS Selector '.eplister li' matched 0 items.
+  [SUCCESS] Found 1 video iframes directly on detail page.
+
+=========================================
+ TESTING: OtakuPoi (https://otakupoi.org/)
+=========================================
+  CSS Selector '.xrelated' matched 12 items.
+  First Card Parsed Details:
+    - Title: Unknown
+    - Image: https://otakupoi.org/assets/oploverz/covers/dr-stone-season-4.jpg
+    - Link: https://otakupoi.org/oploverz/dr-stone-season-4/
+  Fetching detail page: https://otakupoi.org/oploverz/dr-stone-season-4/...
+  CSS Selector '.episodelist li' matched 0 items.
+  [WARNING] No episodes found.
+
+=========================================
+ TESTING: AnimeKu Info (https://animeku.info/)
+=========================================
+  CSS Selector '.anime-card' matched 12 items.
+  First Card Parsed Details:
+    - Title: Re:ZERO -Starting Life in Another World- Season 4
+    - Image: https://cdn.myanimelist.net/images/anime/1540/155824l.jpg
+    - Link: 
+  [FAILED] Could not resolve a valid detail link from the card.
+
+=========================================
+ TESTING: MirAnime (https://miranime.net/)
+=========================================
+  CSS Selector '.bsx' matched 0 items.
+  [FALLBACK] Selector 'article' matched 0 items.
+  [FAILED] No cards found on homepage.
+
+=========================================
+ TESTING: GomuNime (https://gomunime.top/)
+=========================================
+  CSS Selector '.bsx' matched 0 items.
+  [FALLBACK] Selector 'article' matched 0 items.
+  [FAILED] No cards found on homepage.
+
+=========================================
+ TESTING: AlqAnime (https://alqanime.si/)
+=========================================
+  CSS Selector '.bsx' matched 49 items.
+  First Card Parsed Details:
+    - Title: Liar Game Episode 19 Subtitle Indonesia
+    - Image: https://i2.wp.com/alqanime.si/wp-content/uploads/2026/04/1775492533-9286-156078.jpg?resize=247,350
+    - Link: https://alqanime.si/liar-game-episode-19-subtitle-indonesia/
+  Fetching detail page: https://alqanime.si/liar-game-episode-19-subtitle-indonesia/...
+  CSS Selector '.eplister li' matched 0 items.
+  [SUCCESS] Found 1 video iframes directly on detail page.
+
+=========================================
+ TESTING: NimeIndo (https://v1.nimeindo.org/)
+=========================================
+  CSS Selector '.bsx' matched 35 items.
+  First Card Parsed Details:
+    - Title: One Piece Episode 1172
+    - Image: https://i2.wp.com/v1.nimeindo.org/wp-content/uploads/2025/06/One-Piece-sub-indo.jpg?resize=247,350
+    - Link: https://v1.nimeindo.org/one-piece-episode-1172/
+  Fetching detail page: https://v1.nimeindo.org/one-piece-episode-1172/...
+  CSS Selector '.eplister li' matched 0 items.
+  [SUCCESS] Found 1 video iframes directly on detail page.
+
+=========================================
+ TESTING: SubNime (https://subnime.id/)
+=========================================
+  CSS Selector '.anime-card' matched 60 items.
+  First Card Parsed Details:
+    - Title: One Piece
+    - Image: https://cdn.myanimelist.net/images/anime/1244/138851l.jpg
+    - Link: 
+  [FAILED] Could not resolve a valid detail link from the card.
+
+==================================================
+DOM PARSER REPORT: 11/23 Succeeded
+Failed sites: Kuramanime, AnimeMovies, Stucknime, YlNime, MyAnimeku, IP 154, Meownime Net, OtakuPoi, AnimeKu Info, MirAnime, GomuNime, SubNime
+==================================================

@@ -1,11 +1,19 @@
-<div align="center">
+# CineManga — All-in-One Hub
 
-<img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
+This patch adds a three-mode browsing surface:
 
-  <h1>Built with AI Studio</h2>
+- Anime
+- Komik
+- Drama
 
-  <p>The fastest path from prompt to production with Gemini.</p>
+It also adds a centralized source endpoint registry, runtime health probe, reusable HTML selector engine, and documentation for volatile domains.
 
-  <a href="https://aistudio.google.com/apps">Start building</a>
+## Build note
 
-</div>
+The original project archive contains a corrupt `gradle/wrapper/gradle-wrapper.jar`. Regenerate/replace the Gradle wrapper before building.
+
+See `docs/` for implementation and migration details.
+
+## Anime & Drama scraper implementation
+
+See `docs/ANIME_SCRAPER_GUIDE.md` and `docs/DRAMA_SCRAPER_GUIDE.md`. Reusable source templates are under `app/src/main/java/com/example/data/sources/templates/`.

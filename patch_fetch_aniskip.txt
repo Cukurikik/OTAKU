@@ -1,0 +1,25 @@
+    private fun fetchAniSkip(episodeNumber: Float) {
+        viewModelScope.launch {
+            try {
+                // Find MAL ID from tracker
+                val tracks = trackDao.getTracksSync(itemId)
+                val malTrack = tracks.find { it.trackerId == "myanimelist" }
+                if (malTrack != null) {
+                    val response = com.example.data.trackers.AniSkipClient.api.getSkipTimes(
+                        malId = malTrack.remoteId,
+                        episodeNumber = episodeNumber
+                    )
+                    if (response.found && response.results != null) {
+                        skipTimes.value = response.results
+                    } else {
+                        skipTimes.value = emptyList()
+                    }
+                } else {
+                    skipTimes.value = emptyList()
+                }
+            } catch (e: Exception) {
+                // Ignore API failures or rate limits
+                skipTimes.value = emptyList()
+            }
+        }
+    }

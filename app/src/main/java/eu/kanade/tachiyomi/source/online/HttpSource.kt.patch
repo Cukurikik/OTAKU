@@ -1,0 +1,65 @@
+--- app/src/main/java/eu/kanade/tachiyomi/source/online/HttpSource.kt
++++ app/src/main/java/eu/kanade/tachiyomi/source/online/HttpSource.kt
+@@ -102,31 +102,31 @@
+     }
+ 
+     // Source implementations using Flow and Coroutines
+-    override fun fetchPopularManga(page: Int): Flow<MangasPage> = flow {
++    override fun fetchPopularManga(page: Int): rx.Observable<MangasPage> = rx.Observable.fromCallable {
+         val request = popularMangaRequest(page)
+-        val response = executeRequest(request)
+-        emit(popularMangaParse(response))
+-    }.flowOn(Dispatchers.IO)
++        val response = kotlinx.coroutines.runBlocking { executeRequest(request) }
++        popularMangaParse(response)
++    }
+ 
+-    override fun fetchLatestUpdates(page: Int): Flow<MangasPage> = flow {
++    override fun fetchLatestUpdates(page: Int): rx.Observable<MangasPage> = rx.Observable.fromCallable {
+         val request = latestUpdatesRequest(page)
+-        val response = executeRequest(request)
+-        emit(latestUpdatesParse(response))
+-    }.flowOn(Dispatchers.IO)
++        val response = kotlinx.coroutines.runBlocking { executeRequest(request) }
++        latestUpdatesParse(response)
++    }
+ 
+-    override fun fetchSearchManga(page: Int, query: String, filters: FilterList): Flow<MangasPage> = flow {
++    override fun fetchSearchManga(page: Int, query: String, filters: FilterList): rx.Observable<MangasPage> = rx.Observable.fromCallable {
+         val request = searchMangaRequest(page, query, filters)
+-        val response = executeRequest(request)
+-        emit(searchMangaParse(response))
+-    }.flowOn(Dispatchers.IO)
++        val response = kotlinx.coroutines.runBlocking { executeRequest(request) }
++        searchMangaParse(response)
++    }
+ 
+-    override fun fetchMangaDetails(manga: SManga): Flow<SManga> = flow {
++    override fun fetchMangaDetails(manga: SManga): rx.Observable<SManga> = rx.Observable.fromCallable {
+         val request = mangaDetailsRequest(manga)
+-        val response = executeRequest(request)
+-        emit(mangaDetailsParse(response))
+-    }.flowOn(Dispatchers.IO)
++        val response = kotlinx.coroutines.runBlocking { executeRequest(request) }
++        mangaDetailsParse(response)
++    }
+ 
+-    override fun fetchChapterList(manga: SManga): Flow<List<SChapter>> = flow {
++    override fun fetchChapterList(manga: SManga): rx.Observable<List<SChapter>> = rx.Observable.fromCallable {
+         val request = chapterListRequest(manga)
+-        val response = executeRequest(request)
+-        emit(chapterListParse(response))
+-    }.flowOn(Dispatchers.IO)
++        val response = kotlinx.coroutines.runBlocking { executeRequest(request) }
++        chapterListParse(response)
++    }
+ 
+-    override fun fetchPageList(chapter: SChapter): Flow<List<eu.kanade.tachiyomi.source.model.Page>> = flow {
++    override fun fetchPageList(chapter: SChapter): rx.Observable<List<eu.kanade.tachiyomi.source.model.Page>> = rx.Observable.fromCallable {
+         val request = pageListRequest(chapter)
+-        val response = executeRequest(request)
+-        emit(pageListParse(response))
+-    }.flowOn(Dispatchers.IO)
++        val response = kotlinx.coroutines.runBlocking { executeRequest(request) }
++        pageListParse(response)
++    }

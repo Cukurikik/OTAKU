@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">Otaku Hub</string>
+    <string name="video_download_channel_name">Video Downloads</string>
+    <string name="video_download_description">Downloading video stream</string>
+</resources>

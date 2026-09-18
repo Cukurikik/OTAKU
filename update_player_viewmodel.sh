@@ -1,0 +1,1 @@
+sed -i 's/val file = File(context.filesDir, "downloads\/\$sourceId\/\$itemId\/\${_currentEpisodeId.value}\/video.mp4")/val file = File(context.getExternalFilesDir(android.os.Environment.DIRECTORY_MOVIES), "OtakuHub\/\$itemId-\${_currentEpisodeId.value}.mp4")/g' app/src/main/java/com/example/ui/viewmodels/PlayerViewModel.kt

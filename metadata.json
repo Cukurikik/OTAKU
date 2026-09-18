@@ -1,0 +1,6 @@
+{
+  "name": "Otaku Hub",
+  "description": "A comprehensive app for comics, anime, drama, and movies.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

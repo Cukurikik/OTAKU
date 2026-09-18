@@ -1,0 +1,5 @@
+#!/bin/bash
+sed -i 's/throw com.example.data.sources.SourceError.Parsing("Selector tidak cocok, HTML berubah atau diblokir.")/throw Exception("Selector tidak cocok, HTML berubah atau diblokir.")/' app/src/main/java/com/example/data/sources/templates/AnimeScraperTemplate.kt
+sed -i 's/throw com.example.data.sources.SourceError.Parsing("Selector tidak cocok, HTML berubah atau diblokir.")/throw Exception("Selector tidak cocok, HTML berubah atau diblokir.")/' app/src/main/java/com/example/data/sources/base/BaseMangaStreamSource.kt
+sed -i 's/throw com.example.data.sources.SourceError.Parsing("Selector tidak cocok, HTML berubah atau diblokir.")/throw Exception("Selector tidak cocok, HTML berubah atau diblokir.")/' app/src/main/java/com/example/data/sources/asura/AsuraScansSource.kt
+sed -i 's/throw com.example.data.sources.SourceError.Parsing("Selector tidak cocok, HTML berubah atau diblokir.")/throw Exception("Selector tidak cocok, HTML berubah atau diblokir.")/' app/src/main/java/com/example/data/sources/mangatoon/MangaToonSource.kt

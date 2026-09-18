@@ -1,0 +1,33 @@
+            // Fallback to iframes if no direct sources found
+            val engine = com.example.data.sources.VideoExtractorEngine(context)
+            
+            // Try to find iframes on the page
+            val iframeSrcs = doc.select("iframe").mapNotNull { 
+                it.attr("src").takeIf { src -> src.isNotBlank() } ?: it.attr("data-src").takeIf { src -> src.isNotBlank() }
+            }
+            
+            for (iframeUrl in iframeSrcs) {
+                val realUrl = if (iframeUrl.startsWith("//")) "https:$iframeUrl" else iframeUrl
+                val engineInfo = engine.extractVideo(realUrl, episodeId)
+                if (engineInfo != null && engineInfo.qualities.isNotEmpty()) {
+                    emit(engineInfo)
+                    return@flow
+                }
+            }
+            
+            // Or try finding servers in select options or lists
+            doc.select(".server-list a, .mirror-list a, select option").forEach { el ->
+                val serverUrl = el.attr("href").takeIf { it.startsWith("http") } 
+                    ?: el.attr("data-url").takeIf { it.startsWith("http") }
+                    ?: el.attr("value").takeIf { it.startsWith("http") }
+                
+                if (serverUrl != null) {
+                    val engineInfo = engine.extractVideo(serverUrl, episodeId)
+                    if (engineInfo != null && engineInfo.qualities.isNotEmpty()) {
+                        emit(engineInfo)
+                        return@flow
+                    }
+                }
+            }
+            
+            // If all else fails, just emit the episodeId as fallback embed

@@ -1,0 +1,75 @@
+=== Testing kuramanime-ing (https://v19.kuramanime.ing) ===
+  Failed to get HTML for any candidates of kuramanime-ing
+=== Testing animasu-work (https://v2.animasu.work) ===
+  Succeeded with: https://v2.animasu.work
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 40 times
+=== Testing animasu-movie (https://v2.animasu.work/anime-movie/) ===
+  Succeeded with: https://v2.animasu.work/anime-movie/
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 20 times
+=== Testing nimegami (https://nimegami.id) ===
+  Succeeded with: https://nimegami.id
+  Pattern matched: '<article[^>]*>' -> 17 times
+=== Testing animemovies (https://animemovies.org) ===
+  Succeeded with: https://animemovies.org
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 139 times
+=== Testing stucknime (https://stucknime.my.id) ===
+  Succeeded with: https://stucknime.my.id
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 16 times
+=== Testing ylnime (https://ylnime.com) ===
+  Succeeded with: https://ylnime.com
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 126 times
+  Pattern matched: 'class="[^"]*(?:dw-item)[^"]*"' -> 3 times
+=== Testing anime-kuindo (https://s2.anime-kuindo.com) ===
+  Succeeded with: https://s2.anime-kuindo.com
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 132 times
+  Pattern matched: '<article[^>]*>' -> 71 times
+=== Testing wibuku (https://wibuku.id) ===
+  Succeeded with: https://wibuku.id
+  Pattern matched: 'class="[^"]*(?:ultp-block-item)[^"]*"' -> 27 times
+=== Testing myanimeku (https://myanimeku.com) ===
+  Succeeded with: https://myanimeku.com
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 35 times
+  Pattern matched: 'class="[^"]*(?:anime-card)[^"]*"' -> 204 times
+=== Testing kuronime (https://kuronime.sbs) ===
+  Succeeded with: https://kuronime.sbs
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 92 times
+  Pattern matched: '<article[^>]*>' -> 34 times
+=== Testing animeindo (https://animeindo.me) ===
+  Succeeded with: https://animeindo.me
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 94 times
+  Pattern matched: '<article[^>]*>' -> 46 times
+=== Testing animasuid (https://animasuid.com) ===
+  Succeeded with: https://animasuid.com
+  Pattern matched: '<article[^>]*>' -> 15 times
+=== Testing ip154 (https://154.203.167.17) ===
+  Failed to get HTML for any candidates of ip154
+=== Testing meownime-net (https://meownime.net) ===
+  Succeeded with: https://meownime.net
+  Pattern matched: 'class="[^"]*(?:anime-card)[^"]*"' -> 20 times
+=== Testing nontonanimeid (https://nontonanimeid.my.id) ===
+  Succeeded with: https://nontonanimeid.my.id
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 96 times
+  Pattern matched: '<article[^>]*>' -> 47 times
+=== Testing otakupoi (https://otakupoi.org) ===
+  Succeeded with: https://otakupoi.org
+=== Testing animeku-info (https://animeku.info) ===
+  Succeeded with: https://animeku.info
+  Pattern matched: 'class="[^"]*(?:anime-card)[^"]*"' -> 72 times
+=== Testing miranime (https://miranime.net) ===
+  Succeeded with: https://miranime.net
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 100 times
+=== Testing gomunime (https://gomunime.top) ===
+  Succeeded with: https://gomunime.top
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 299 times
+=== Testing alqanime (https://alqanime.si) ===
+  Succeeded with: https://alqanime.si
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 100 times
+  Pattern matched: '<article[^>]*>' -> 49 times
+=== Testing nimeindo (https://v1.nimeindo.org) ===
+  Succeeded with: https://v1.nimeindo.org
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 70 times
+  Pattern matched: '<article[^>]*>' -> 35 times
+=== Testing subnime (https://subnime.id) ===
+  Succeeded with: https://subnime.id
+  Pattern matched: 'class="[^"]*(?:bs|bsx)[^"]*"' -> 1 times
+  Pattern matched: 'class="[^"]*(?:anime-card)[^"]*"' -> 60 times

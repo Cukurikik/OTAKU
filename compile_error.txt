@@ -1,0 +1,15 @@
+Reusing configuration cache.
+> Task :app:preBuild UP-TO-DATE
+> Task :app:preDebugBuild UP-TO-DATE
+> Task :app:generateDebugResources UP-TO-DATE
+> Task :app:generateDebugBuildConfig FROM-CACHE
+> Task :app:packageDebugResources UP-TO-DATE
+> Task :app:kspDebugKotlin FROM-CACHE
+> Task :app:processDebugNavigationResources FROM-CACHE
+> Task :app:parseDebugLocalResources UP-TO-DATE
+> Task :app:generateDebugRFile UP-TO-DATE
+> Task :app:compileDebugKotlin FROM-CACHE
+
+BUILD SUCCESSFUL in 1s
+8 actionable tasks: 4 from cache, 4 up-to-date
+Configuration cache entry reused.

@@ -1,0 +1,300 @@
+
+=========================================
+ TESTING SITE: Kuramanime (https://v19.kuramanime.ing/)
+=========================================
+  Page Title: Just a moment...
+  [BLOCKED] Cloudflare challenge page detected!
+
+=========================================
+ TESTING SITE: Animasu (https://v2.animasu.work/)
+=========================================
+  Page Title: Animasu &#8226; Nonton Streaming &amp; Download Anime Subtitle Indonesia
+  Successfully split card by indicator 'class="bs"' - Total cards estimation: 20
+  Parsed Card Info:
+    - Title: Nonton Anime Goodbye, Lara
+    - Image (Lazy-resolved): https://i3.wp.com/v2.animasu.work/wp-content/uploads/2026/07/156343.jpg
+    - Link: https://v2.animasu.work/anime/sayonara-lara/
+  Fetching detail page: https://v2.animasu.work/anime/sayonara-lara/...
+  Episodes found: 24
+  First Episode parsed:
+    - Title: 
+    - Link: https://v2.animasu.work/nonton-sayonara-lara-episode-6/
+  Fetching episode page: https://v2.animasu.work/nonton-sayonara-lara-episode-6/...
+  Video sources/iframes found: 2
+    - [1] https://www.blogger.com/video.g?token=AD6v5dzWqK-7kcq4Mhaq_LJOUcnZASTmv-NjyUttA1SeaK_htVlWjNkOYNov8ZuekRu84TbH4va0qu9CgOaq4cTQpbyC27a8ugqXAgJy2CZh_0EAIUQ2d4cIJ5BpAdxzNpkfGURLOOfw&origin=odongoing2deredesu.blogspot.com
+    - [2] https://www5.cbox.ws/box/?boxid=946129&boxtag=dHK21Z
+  [SUCCESS] Full scraping pipeline verified successfully!
+
+=========================================
+ TESTING SITE: Animasu Movie (https://v2.animasu.work/anime-movie/)
+=========================================
+  Page Title: Kumpulan Anime Movie Terpopuler Lengkap Sub Indo &#8226; Animasu
+  Successfully split card by indicator 'class="bs"' - Total cards estimation: 10
+  Parsed Card Info:
+    - Title: Nonton Anime Assassination Classroom the Movie: Our Time
+    - Image (Lazy-resolved): https://i0.wp.com/v2.animasu.work/wp-content/uploads/2026/07/154288.jpg
+    - Link: https://v2.animasu.work/anime/ansatsu-kyoushitsu-movie-minna-no-jikan/
+  Fetching detail page: https://v2.animasu.work/anime/ansatsu-kyoushitsu-movie-minna-no-jikan/...
+  Episodes found: 10
+  First Episode parsed:
+    - Title: TV
+			
+			
+				12 Episode
+				Selesai &#x2713;			
+					
+			
+				Koi to Uso
+    - Link: https://v2.animasu.work/anime/koi-to-uso-subtitle-indo/
+  Fetching episode page: https://v2.animasu.work/anime/koi-to-uso-subtitle-indo/...
+  Video sources/iframes found: 2
+    - [1] https://www.youtube.com/embed/2CS87AfcD1A
+    - [2] https://www5.cbox.ws/box/?boxid=946129&boxtag=dHK21Z
+  [SUCCESS] Full scraping pipeline verified successfully!
+
+=========================================
+ TESTING SITE: Nimegami (https://nimegami.id/)
+=========================================
+  Page Title: Nimegami - Tempat Download dan Nonton Anime Sub Indo
+  Successfully split card by indicator '<article' - Total cards estimation: 17
+  Parsed Card Info:
+    - Title: Girls &#038; Panzer: Motto Love Love Sakusen desu! Sub Indo : Episode 1 - 4 (End)
+    - Image (Lazy-resolved): https://nimegami.id/wp-content/uploads/2026/08/Girls-Panzer-Motto-Love-Love-Sakusen-desu-Sub-Indo1.jpg
+    - Link: https://nimegami.id/girls-panzer-motto-love-love-sakusen-desu-sub-indo/
+  Fetching detail page: https://nimegami.id/girls-panzer-motto-love-love-sakusen-desu-sub-indo/...
+  Nimegami Specific check: Found 4 streaming items.
+    [SUCCESS] Verified Nimegami base64 stream episodes.
+
+=========================================
+ TESTING SITE: AnimeMovies (https://animemovies.org/)
+=========================================
+  Page Title: AnimeMovies - Nonton Anime Sub Indo Gratis
+  [FAILED] Could not find any card indicators on homepage.
+
+=========================================
+ TESTING SITE: Stucknime (https://stucknime.my.id/)
+=========================================
+  Page Title: StuckNime - Nonton Anime Sub Indo Terlengkap &amp; Terbaru
+  [FAILED] Could not find any card indicators on homepage.
+
+=========================================
+ TESTING SITE: YlNime (https://ylnime.com/)
+=========================================
+  Page Title: Nonton Anime Sub Indo HD Gratis - Streaming Anime Terlengkap 2026 | YLnime
+  [FAILED] Could not find any card indicators on homepage.
+
+=========================================
+ TESTING SITE: Anime Kuindo (https://s2.anime-kuindo.com/)
+=========================================
+  Page Title: Animekuindo - Terbaru Nonton Anime Subtitle Indonesia Tanpa Iklan - Animekuindo - Nonton Anime Online Streaming Sub Indo Gratis Tanpa Iklan Terbaru Subtitle Indonesia 240p, 360p, 480p, 720p, 1080p
+  Successfully split card by indicator '<article' - Total cards estimation: 71
+  Parsed Card Info:
+    - Title: Black Clover Episode 170 Subtitle Indonesia (Selesai)
+    - Image (Lazy-resolved): https://i2.wp.com/s2.anime-kuindo.com/wp-content/uploads/2025/02/1740714035-4171-88336.jpg?resize=247,350
+    - Link: https://s2.anime-kuindo.com/black-clover-episode-170-subtitle-indonesia-selesai/
+  Fetching detail page: https://s2.anime-kuindo.com/black-clover-episode-170-subtitle-indonesia-selesai/...
+  Episodes found: 9
+  First Episode parsed:
+    - Title: Episode
+    - Link: https://s2.anime-kuindo.com/black-clover-episode-170-subtitle-indonesia-selesai/
+  Fetching episode page: https://s2.anime-kuindo.com/black-clover-episode-170-subtitle-indonesia-selesai/...
+  Video sources/iframes found: 2
+    - [1] https://www.blogger.com/video.g?token=AD6v5dyRzbb2vxIzM-n-H1opygRgYyDgWi5td3E3hgc8I9I4H7ULiEz0daMs-_DEGH6kD4r1g6MRFNUvc7i5rSWVP16K4k3z2PCwVxgLbOxYgfMCneYiesknqrJdENXnqLm5dRJPPWs
+    - [2] https://www.googletagmanager.com/ns.html?id=GTM-M4DQ3MPX
+  [SUCCESS] Full scraping pipeline verified successfully!
+
+=========================================
+ TESTING SITE: Wibuku (https://wibuku.id/)
+=========================================
+  Page Title: Wibuku: Situs Nonton Anime Subtitle Indonesia Terlengkap
+  [FAILED] Could not find any card indicators on homepage.
+
+=========================================
+ TESTING SITE: MyAnimeku (https://myanimeku.com/)
+=========================================
+  Page Title: Myanimeku | Nonton dan Streaming Anime BD Subtitle Indonesia
+  Successfully split card by indicator 'class="anime-card"' - Total cards estimation: 34
+  Parsed Card Info:
+    - Title: TV
+    - Image (Lazy-resolved): https://cdn.myanimelist.net/images/anime/1437/115925l.jpg
+    - Link: 
+  [FAILED] No valid link found to test detail page.
+
+=========================================
+ TESTING SITE: Kuronime (https://kuronime.sbs/)
+=========================================
+  Page Title: Kuronime - Nonton Streaming Anime Subtitle Indonesia
+  Successfully split card by indicator 'class="bs"' - Total cards estimation: 10
+  Parsed Card Info:
+    - Title: Kakusei Hunter Omegahorn
+    - Image (Lazy-resolved): https://kuronime.sbs/wp-content/themes/animenonton/assets/images/controls-play.svg
+    - Link: https://kuronime.sbs/anime/kakusei-hunter-omegahorn/
+  Fetching detail page: https://kuronime.sbs/anime/kakusei-hunter-omegahorn/...
+  Episodes found: 6
+  First Episode parsed:
+    - Title: Episode 3
+    - Link: https://kuronime.sbs/nonton-kakusei-hunter-omegahorn-episode-3/
+  Fetching episode page: https://kuronime.sbs/nonton-kakusei-hunter-omegahorn-episode-3/...
+  Video sources/iframes found: 0
+  [WARNING] Episode page loaded but no video stream frame detected.
+
+=========================================
+ TESTING SITE: AnimeIndo (https://animeindo.me/)
+=========================================
+  Page Title: Animeindo - Nonton Streaming Anime Subtitle Indonesia Update Terbaru dan Terlengkap
+  Successfully split card by indicator 'class="bs"' - Total cards estimation: 46
+  Parsed Card Info:
+    - Title: One Piece Episode 1173 Sub Indo
+    - Image (Lazy-resolved): https://i0.wp.com/animeindo.me/wp-content/uploads/2025/07/1753531859-4135-138851.jpg?resize=247,350
+    - Link: https://animeindo.me/one-piece-episode-1173-sub-indo/
+  Fetching detail page: https://animeindo.me/one-piece-episode-1173-sub-indo/...
+  Episodes found: 9
+  First Episode parsed:
+    - Title: Episode
+    - Link: https://animeindo.me/one-piece-episode-1173-sub-indo/
+  Fetching episode page: https://animeindo.me/one-piece-episode-1173-sub-indo/...
+  Video sources/iframes found: 1
+    - [1] https://www.blogger.com/video.g?token=AD6v5dxeZg_YVUD29MC9thN_r1867o1fsS28_Az-aRcTQIBxxf3cfRZfgITQZ5giPRmRijnMldadMx_ztmQmLyVOOV5ZEMljHMl6LcPSbIWLJ-QOsFOmbbk3jFNEaR5eyM3JK4dr6F5k
+  [SUCCESS] Full scraping pipeline verified successfully!
+
+=========================================
+ TESTING SITE: Animasu ID (https://animasuid.com/)
+=========================================
+  Page Title: ANIMASU ID | Situs Wibu Nonton Anime Sub Indo Terlengkap 2025
+  Successfully split card by indicator '<article' - Total cards estimation: 15
+  Parsed Card Info:
+    - Title: Permalink ke: Daemons of the Shadow Realm
+    - Image (Lazy-resolved): https://animasuid.com/wp-content/uploads/2026/08/vIE1llfr1lcmzlsV4xn8vhgtlQN-152x228.jpg
+    - Link: https://animasuid.com/tv/daemons-of-the-shadow-realm/
+  Fetching detail page: https://animasuid.com/tv/daemons-of-the-shadow-realm/...
+  Episodes found: 33
+  First Episode parsed:
+    - Title: Lihat Semua Episode
+    - Link: https://animasuid.com/tv/daemons-of-the-shadow-realm/
+  Fetching episode page: https://animasuid.com/tv/daemons-of-the-shadow-realm/...
+  Video sources/iframes found: 1
+    - [1] https://www.youtube.com/embed/NYFJqJGvUHE
+  [SUCCESS] Full scraping pipeline verified successfully!
+
+=========================================
+ TESTING SITE: IP 154 (http://154.203.167.17/)
+=========================================
+  Page Title: No Title
+  [FAILED] Could not find any card indicators on homepage.
+
+=========================================
+ TESTING SITE: Meownime Net (https://meownime.net/)
+=========================================
+  Page Title: Meownime - Download &amp; Streaming Anime Subtitle Indonesia
+  Successfully split card by indicator 'class="anime-card"' - Total cards estimation: 20
+  Parsed Card Info:
+    - Title: Nonton Harem Shima e Youkoso! Sub Indo
+    - Image (Lazy-resolved): https://matikiri.site/poster/harem-shima-e-youkoso.jpg
+    - Link: https://meownime.net/harem-shima-e-youkoso
+  Fetching detail page: https://meownime.net/harem-shima-e-youkoso...
+  Episodes found: 2
+  First Episode parsed:
+    - Title: Eps 1
+    - Link: https://meownime.net/harem-shima-e-youkoso-episode-1-subtitle-indonesia
+  Fetching episode page: https://meownime.net/harem-shima-e-youkoso-episode-1-subtitle-indonesia...
+  Video sources/iframes found: 1
+    - [1] https://meownime.net/e/103431
+  [SUCCESS] Full scraping pipeline verified successfully!
+
+=========================================
+ TESTING SITE: NontonAnimeID (https://nontonanimeid.my.id/)
+=========================================
+  Page Title: Nonton Anime ID | Watch Anime &amp; Donghua Sub Indo
+  Successfully split card by indicator 'class="bs"' - Total cards estimation: 47
+  Parsed Card Info:
+    - Title: Renegade Immortal - Episode 153 [Subtitle Indonesia]
+    - Image (Lazy-resolved): https://i3.wp.com/nontonanimeid.my.id/wp-content/uploads/2025/06/Renegade-Immortal-Ascendant-768x1077-1.jpg?resize=247,350
+    - Link: https://nontonanimeid.my.id/renegade-immortal-episode-153-subtitle-indonesia/
+  Fetching detail page: https://nontonanimeid.my.id/renegade-immortal-episode-153-subtitle-indonesia/...
+  Episodes found: 9
+  First Episode parsed:
+    - Title: Episode
+    - Link: https://nontonanimeid.my.id/renegade-immortal-episode-153-subtitle-indonesia/
+  Fetching episode page: https://nontonanimeid.my.id/renegade-immortal-episode-153-subtitle-indonesia/...
+  Video sources/iframes found: 1
+    - [1] https://nontonanimeid.my.id/embed2.php?url=https%3A%2F%2Frumble.com%2Fhls-vod%2FXIMybjv2re8%2Fplaylist.m3u8%3Fu%3D0%26b%3D0
+  [SUCCESS] Full scraping pipeline verified successfully!
+
+=========================================
+ TESTING SITE: OtakuPoi (https://otakupoi.org/)
+=========================================
+  Page Title: OtakuPoi | Portal Web Download dan Streaming Anime Subtitle Indonesia
+  [FAILED] Could not find any card indicators on homepage.
+
+=========================================
+ TESTING SITE: AnimeKu Info (https://animeku.info/)
+=========================================
+  Page Title: Animeku - Nonton Anime Sub Indo
+  Successfully split card by indicator 'class="anime-card"' - Total cards estimation: 12
+  Parsed Card Info:
+    - Title: Ongoing
+    - Image (Lazy-resolved): https://cdn.myanimelist.net/images/anime/1540/155824l.jpg
+    - Link: https://animeku.info/anime/61316
+  Fetching detail page: https://animeku.info/anime/61316...
+  Episodes found: 0
+  [WARNING] No episodes found on detail page.
+
+=========================================
+ TESTING SITE: MirAnime (https://miranime.net/)
+=========================================
+  Page Title: Miranime — Nonton Anime Sub Indo Terlengkap
+  [FAILED] Could not find any card indicators on homepage.
+
+=========================================
+ TESTING SITE: GomuNime (https://gomunime.top/)
+=========================================
+  Page Title: Gomunime — Nonton Anime Sub Indo Gratis Streaming HD
+  [FAILED] Could not find any card indicators on homepage.
+
+=========================================
+ TESTING SITE: AlqAnime (https://alqanime.si/)
+=========================================
+  Page Title: Alqanime - Nonton Streaming Anime Sub Indo
+  Successfully split card by indicator 'class="bs"' - Total cards estimation: 49
+  Parsed Card Info:
+    - Title: Liar Game Episode 19 Subtitle Indonesia
+    - Image (Lazy-resolved): https://i2.wp.com/alqanime.si/wp-content/uploads/2026/04/1775492533-9286-156078.jpg?resize=247,350
+    - Link: https://alqanime.si/liar-game-episode-19-subtitle-indonesia/
+  Fetching detail page: https://alqanime.si/liar-game-episode-19-subtitle-indonesia/...
+  Episodes found: 9
+  First Episode parsed:
+    - Title: Episode
+    - Link: https://alqanime.si/liar-game-episode-19-subtitle-indonesia/
+  Fetching episode page: https://alqanime.si/liar-game-episode-19-subtitle-indonesia/...
+  Video sources/iframes found: 1
+    - [1] https://www.blogger.com/video.g?token=AD6v5dxGELbZWZLaKlnJFqczAX9MQ9LNDUmtD-P_TucFdJqLv7tvhvBbgym8uhNcGdvsJz0UpwT_baDezMKVKhO5i3ivgj0sUHD44uiKjhDAgMQeahCgjOdsglU9uCbZb9jmtpanux5q
+  [SUCCESS] Full scraping pipeline verified successfully!
+
+=========================================
+ TESTING SITE: NimeIndo (https://v1.nimeindo.org/)
+=========================================
+  Page Title: Nimeindo &raquo; Nonton Streaming Anime Subtitle Indonesia
+  Successfully split card by indicator 'class="bs"' - Total cards estimation: 30
+  Parsed Card Info:
+    - Title: Otome Kaijuu Caraméliser Episode 6
+    - Image (Lazy-resolved): https://i0.wp.com/v1.nimeindo.org/wp-content/uploads/2026/07/1783018928-5750-156340.jpg?resize=247,350
+    - Link: https://v1.nimeindo.org/otome-kaijuu-carameliser-episode-6/
+  Fetching detail page: https://v1.nimeindo.org/otome-kaijuu-carameliser-episode-6/...
+    [Error fetching via proxy]: The read operation timed out
+  [FAILED] Could not retrieve detail page.
+
+=========================================
+ TESTING SITE: SubNime (https://subnime.id/)
+=========================================
+  Page Title: Subnime | Situs Nonton Anime &amp; Donghua Sub Indo Terlengkap
+  Successfully split card by indicator 'class="anime-card"' - Total cards estimation: 60
+  Parsed Card Info:
+    - Title: One Piece
+    - Image (Lazy-resolved): https://cdn.myanimelist.net/images/anime/1244/138851l.jpg
+    - Link: 
+  [FAILED] No valid link found to test detail page.
+
+==================================================
+FINAL REPORT: 9/23 Succeeded
+Failed sites: Kuramanime, AnimeMovies, Stucknime, YlNime, Wibuku, MyAnimeku, Kuronime, IP 154, OtakuPoi, AnimeKu Info, MirAnime, GomuNime, NimeIndo, SubNime
+==================================================
