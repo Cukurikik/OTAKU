@@ -59,9 +59,19 @@ class VideoDownloadService : DownloadService(
         ) {
             val downloadId = "${payload.sourceId}||${payload.mangaId}||${payload.chapterId}"
             val mime = payload.mimeType ?: if (payload.directUrl.contains(".m3u8")) MimeTypes.APPLICATION_M3U8 else MimeTypes.VIDEO_MP4
-            val request = DownloadRequest.Builder(downloadId, Uri.parse(payload.directUrl))
-                .setMimeType(mime)
-                .build()
+            
+            // Build full headers map including Cookie if provided
+            val headersMap = payload.headers.toMutableMap()
+            if (!payload.cookies.isNullOrBlank() && !headersMap.containsKey("Cookie")) {
+                headersMap["Cookie"] = payload.cookies
+            }
+
+            val request = ExoDownloadManager.buildDownloadRequest(
+                mediaUri = Uri.parse(payload.directUrl),
+                headers = headersMap,
+                contentId = downloadId,
+                mimeType = mime
+            )
             
             DownloadService.sendAddDownload(
                 context,
@@ -84,6 +94,14 @@ class VideoDownloadService : DownloadService(
         createNotificationChannel()
         super.onCreate()
         notificationHelper = DownloadNotificationHelper(this, CHANNEL_ID)
+        
+        // Execute background Storage Janitor task to clear orphaned .tmp files and staging older than 24h
+        serviceScope.launch {
+            try {
+                com.example.storage.StoragePathManager.runStorageJanitorTask(this@VideoDownloadService)
+            } catch (_: Exception) {}
+        }
+
         val manager = ExoDownloadManager.getManager(this)
         manager.addListener(object : DownloadManager.Listener {
             override fun onDownloadChanged(
@@ -222,9 +240,23 @@ class VideoDownloadService : DownloadService(
                             }
 
                             val mime = entity.mimeType ?: if (targetUrl.contains(".m3u8")) MimeTypes.APPLICATION_M3U8 else MimeTypes.VIDEO_MP4
-                            val request = DownloadRequest.Builder(downloadId, Uri.parse(targetUrl))
-                                .setMimeType(mime)
-                                .build()
+                            val headersMap = mutableMapOf<String, String>()
+                            if (!entity.headersJson.isNullOrEmpty()) {
+                                try {
+                                    val parsed = json.decodeFromString<Map<String, String>>(entity.headersJson)
+                                    headersMap.putAll(parsed)
+                                } catch (_: Exception) {}
+                            }
+                            if (!entity.cookies.isNullOrBlank() && !headersMap.containsKey("Cookie")) {
+                                headersMap["Cookie"] = entity.cookies
+                            }
+
+                            val request = ExoDownloadManager.buildDownloadRequest(
+                                mediaUri = Uri.parse(targetUrl),
+                                headers = headersMap,
+                                contentId = downloadId,
+                                mimeType = mime
+                            )
                             DownloadService.sendAddDownload(
                                 this@VideoDownloadService,
                                 VideoDownloadService::class.java,

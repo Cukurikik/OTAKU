@@ -33,8 +33,8 @@ class VideoUrlInterceptorSanitizationTest {
         val webView = WebViewPool.acquireInstance(context)
         assertNotNull("Acquired WebView should not be null", webView)
 
-        // Simulate attaching listeners and JS bridges
-        val webAppInterface = WebAppInterface { _, _ -> }
+        // Simulate attaching listeners and JS bridges with aligned signature
+        val webAppInterface = WebAppInterface { videoUrl: String, subtitle: com.example.data.sources.Subtitle?, resolution: String -> }
         webView.addJavascriptInterface(webAppInterface, "AndroidBridge")
         webView.loadUrl("https://example.com/video-embed")
 

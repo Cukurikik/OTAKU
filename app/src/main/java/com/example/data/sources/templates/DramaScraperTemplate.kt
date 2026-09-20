@@ -68,15 +68,27 @@ abstract class DramaScraperTemplate(context: Context) : BaseDramaSource(context)
     }
 
     override suspend fun getDetail(itemId: String): ContentItem? {
-        
         return try {
             val doc = fetchDocument(itemId)
             val title = firstText(doc, selectors.title).ifBlank { doc.title() }
             val image = firstImage(doc, selectors.image)
             val description = firstText(doc, selectors.description)
             val genres = doc.select(selectors.genres).map { it.text().trim() }.filter { it.isNotBlank() }.distinct()
+            val metadata = extractDramaMetadata(doc, title)
             SourceStatusBus.clear(sourceId)
-            ContentItem(itemId, title, sourceName, image, ContentType.DRAMA, description, genres, sourceId)
+            ContentItem(
+                id = itemId,
+                title = title,
+                source = sourceName,
+                imageUrl = image,
+                type = ContentType.DRAMA,
+                description = description,
+                genres = genres,
+                sourceId = sourceId,
+                castList = metadata.castList,
+                subtitleStatus = metadata.subtitleStatus,
+                seasonNumber = metadata.seasonNumber
+            )
         } catch (e: CancellationException) {
             throw e
         } catch (e: Exception) {

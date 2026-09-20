@@ -30,12 +30,52 @@ import kotlin.coroutines.resume
 class WebAppInterface(
     private val onStreamFound: (streamUrl: String, extraHeaders: Map<String, String>) -> Unit
 ) {
+    private var onSubtitleFound: ((subtitle: com.example.data.sources.Subtitle) -> Unit)? = null
+    private var onStreamWithMetaFound: ((videoUrl: String, subtitle: com.example.data.sources.Subtitle?, resolution: String) -> Unit)? = null
+
+    constructor(
+        onStreamFound: (streamUrl: String, extraHeaders: Map<String, String>) -> Unit,
+        onSubtitleFound: ((subtitle: com.example.data.sources.Subtitle) -> Unit)?
+    ) : this(onStreamFound) {
+        this.onSubtitleFound = onSubtitleFound
+    }
+
+    constructor(
+        onStreamWithMetaFound: (videoUrl: String, subtitle: com.example.data.sources.Subtitle?, resolution: String) -> Unit
+    ) : this({ url, _ -> onStreamWithMetaFound(url, null, "Auto") }) {
+        this.onStreamWithMetaFound = onStreamWithMetaFound
+    }
+
     @android.webkit.JavascriptInterface
     fun processApiResponse(url: String, responseBody: String) {
         if (responseBody.isBlank()) return
         val streams = ApiResponseParser.extractStreamUrls(url, responseBody)
+        val subtitles = ApiResponseParser.extractSubtitleTracks(url, responseBody)
+        val firstSub = subtitles.firstOrNull()
         for (stream in streams) {
+            val res = when {
+                stream.contains("1080") -> "1080p"
+                stream.contains("720") -> "720p"
+                stream.contains("480") -> "480p"
+                stream.contains("360") -> "360p"
+                else -> "Auto"
+            }
             onStreamFound(stream, mapOf("Referer" to url))
+            onStreamWithMetaFound?.invoke(stream, firstSub, res)
+        }
+        for (sub in subtitles) {
+            onSubtitleFound?.invoke(sub)
+        }
+    }
+
+    @android.webkit.JavascriptInterface
+    fun processSubtitle(url: String, language: String, format: String) {
+        if (url.isNotBlank() && (url.startsWith("http://") || url.startsWith("https://"))) {
+            val fmt = format.ifBlank { if (url.contains(".srt", ignoreCase = true)) "srt" else "vtt" }
+            val lang = language.ifBlank { "Indonesian" }
+            val sub = com.example.data.sources.Subtitle(language = lang, url = url, format = fmt)
+            onSubtitleFound?.invoke(sub)
+            onStreamWithMetaFound?.invoke(url, sub, "Auto")
         }
     }
 
@@ -43,24 +83,59 @@ class WebAppInterface(
     fun processBlobUrl(blobUrl: String, mimeType: String) {
         if (blobUrl.isNotBlank()) {
             onStreamFound(blobUrl, emptyMap())
+            onStreamWithMetaFound?.invoke(blobUrl, null, "Auto")
         }
     }
 
     @android.webkit.JavascriptInterface
     fun processStreamUrl(streamUrl: String) {
         if (streamUrl.isNotBlank()) {
+            val res = when {
+                streamUrl.contains("1080") -> "1080p"
+                streamUrl.contains("720") -> "720p"
+                streamUrl.contains("480") -> "480p"
+                streamUrl.contains("360") -> "360p"
+                else -> "Auto"
+            }
             onStreamFound(streamUrl, emptyMap())
+            onStreamWithMetaFound?.invoke(streamUrl, null, res)
         }
     }
 }
 
 class VideoUrlInterceptor(
-    private val context: Context? = null
+    private val context: Context? = null,
+    private val onStreamFound: ((videoUrl: String, subtitle: com.example.data.sources.Subtitle?, resolution: String) -> Unit)? = null
 ) {
+    /**
+     * Secondary constructor for tests or components providing onStreamFound with full metadata signature:
+     * (videoUrl: String, subtitle: Subtitle?, resolution: String) -> Unit
+     */
+    constructor(
+        onStreamFound: (videoUrl: String, subtitle: com.example.data.sources.Subtitle?, resolution: String) -> Unit
+    ) : this(null, onStreamFound)
+
     /**
      * Secondary parameterless constructor for test runners (Robolectric) and DI.
      */
-    constructor() : this(null)
+    constructor() : this(null, null)
+
+    /**
+     * Simulates or processes a URL, immediately notifying the aligned onStreamFound callback
+     * with (videoUrl, subtitle, resolution).
+     */
+    fun processUrl(url: String) {
+        val isStream = isMediaStreamUrl(url) || url.contains(".m3u8") || url.contains(".mp4")
+        val res = when {
+            url.contains("1080") -> "1080p"
+            url.contains("720") -> "720p"
+            url.contains("480") -> "480p"
+            url.contains("360") -> "360p"
+            else -> "Auto"
+        }
+        val sub = checkAndCaptureSubtitle(url)
+        onStreamFound?.invoke(url, sub, res)
+    }
 
     private fun resolveContext(): Context {
         if (context != null) return context
@@ -205,11 +280,26 @@ class VideoUrlInterceptor(
                     }
 
                     val interceptedStreams = mutableListOf<VideoQuality>()
+                    val interceptedSubtitles = mutableListOf<com.example.data.sources.Subtitle>()
                     val isFinished = AtomicBoolean(false)
 
                     fun finishWithResult(info: VideoStreamInfo?) {
                         if (isFinished.compareAndSet(false, true) && continuation.isActive) {
-                            continuation.resume(info)
+                            val finalInfo = if (info != null && info.subtitles.isEmpty()) {
+                                val subs = synchronized(interceptedSubtitles) { interceptedSubtitles.toList() }
+                                if (subs.isNotEmpty()) info.copy(subtitles = subs) else info
+                            } else {
+                                info
+                            }
+                            continuation.resume(finalInfo)
+                        }
+                    }
+
+                    val handleSubtitleDiscovered: (com.example.data.sources.Subtitle) -> Unit = { sub ->
+                        synchronized(interceptedSubtitles) {
+                            if (interceptedSubtitles.none { it.url == sub.url }) {
+                                interceptedSubtitles.add(sub)
+                            }
                         }
                     }
 
@@ -218,6 +308,9 @@ class VideoUrlInterceptor(
                         kotlinx.coroutines.CoroutineScope(Dispatchers.IO).launch {
                             val proxyHtml = NetworkModule.fetchViaCloudflareWorker(targetUrl, headers)
                             if (!proxyHtml.isNullOrBlank()) {
+                                val subs = ApiResponseParser.extractSubtitleTracks(targetUrl, proxyHtml)
+                                subs.forEach { handleSubtitleDiscovered(it) }
+
                                 val streams = ApiResponseParser.extractStreamUrls(targetUrl, proxyHtml)
                                 if (streams.isNotEmpty()) {
                                     val qualities = streams.map { s ->
@@ -230,6 +323,7 @@ class VideoUrlInterceptor(
                                                 episodeId = episodeId,
                                                 embedUrl = targetUrl,
                                                 qualities = qualities,
+                                                subtitles = synchronized(interceptedSubtitles) { interceptedSubtitles.toList() },
                                                 headers = baseHeaders
                                             )
                                         )
@@ -245,6 +339,7 @@ class VideoUrlInterceptor(
                                                 episodeId = episodeId,
                                                 embedUrl = targetUrl,
                                                 qualities = interceptedStreams.toList(),
+                                                subtitles = synchronized(interceptedSubtitles) { interceptedSubtitles.toList() },
                                                 headers = baseHeaders
                                             )
                                         )
@@ -292,6 +387,7 @@ class VideoUrlInterceptor(
                                         episodeId = episodeId,
                                         embedUrl = targetUrl,
                                         qualities = if (expandedQualities.isNotEmpty()) expandedQualities else listOf(quality),
+                                        subtitles = synchronized(interceptedSubtitles) { interceptedSubtitles.toList() },
                                         headers = mergedHeaders
                                     )
                                     withContext(Dispatchers.Main) {
@@ -302,7 +398,7 @@ class VideoUrlInterceptor(
                         }
                     }
 
-                    val webAppInterface = WebAppInterface(handleStreamDiscovered)
+                    val webAppInterface = WebAppInterface(handleStreamDiscovered, handleSubtitleDiscovered)
                     webView!!.addJavascriptInterface(webAppInterface, "AndroidBridge")
 
                     val jsXhrFetchInterceptor = """
@@ -384,6 +480,18 @@ class VideoUrlInterceptor(
                                 if (playBtn) {
                                     playBtn.click();
                                 }
+
+                                // Query <track> elements inside <video> or document
+                                var tracks = document.querySelectorAll('video track, track');
+                                tracks.forEach(function(tr) {
+                                    var src = tr.src || tr.getAttribute('src');
+                                    var label = tr.label || tr.getAttribute('label') || tr.getAttribute('srclang') || 'Indonesian';
+                                    if (src && src.startsWith('http')) {
+                                        if (window.AndroidBridge && typeof window.AndroidBridge.processSubtitle === 'function') {
+                                            window.AndroidBridge.processSubtitle(src, label, src.indexOf('.srt') > -1 ? 'srt' : 'vtt');
+                                        }
+                                    }
+                                });
                                 
                                 var v = document.querySelector('video');
                                 if (v) {
@@ -397,7 +505,19 @@ class VideoUrlInterceptor(
                                     var jw = window.jwplayer();
                                     if (jw && jw.getPlaylist) {
                                         var pl = jw.getPlaylist();
-                                        if (pl && pl[0] && pl[0].file) return pl[0].file;
+                                        if (pl && pl[0]) {
+                                            if (pl[0].tracks) {
+                                                pl[0].tracks.forEach(function(t) {
+                                                    if (t.file && t.file.startsWith('http')) {
+                                                        var lbl = t.label || t.name || 'Indonesian';
+                                                        if (window.AndroidBridge && typeof window.AndroidBridge.processSubtitle === 'function') {
+                                                            window.AndroidBridge.processSubtitle(t.file, lbl, t.file.indexOf('.srt') > -1 ? 'srt' : 'vtt');
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                            if (pl[0].file) return pl[0].file;
+                                        }
                                     }
                                 }
                                 
@@ -452,6 +572,27 @@ class VideoUrlInterceptor(
                                 lowerUrl.contains("googlesyndication")
                             ) {
                                 return WebResourceResponse("text/plain", "UTF-8", null)
+                            }
+
+                            // Check if network request is a subtitle track
+                            val isSubtitle = (lowerUrl.contains(".vtt") ||
+                                    lowerUrl.contains(".srt") ||
+                                    lowerUrl.contains("sub.vtt") ||
+                                    lowerUrl.contains("/subtitles/") ||
+                                    lowerUrl.contains("/caption/")) &&
+                                    !lowerUrl.endsWith(".js") &&
+                                    !lowerUrl.endsWith(".css") &&
+                                    !lowerUrl.endsWith(".png") &&
+                                    !lowerUrl.endsWith(".jpg")
+
+                            if (isSubtitle) {
+                                val lang = when {
+                                    lowerUrl.contains("indonesia") || lowerUrl.contains("indo") || lowerUrl.contains("/id.") -> "Indonesian"
+                                    lowerUrl.contains("english") || lowerUrl.contains("eng") || lowerUrl.contains("/en.") -> "English"
+                                    else -> "Indonesian"
+                                }
+                                val fmt = if (lowerUrl.contains(".srt")) "srt" else "vtt"
+                                handleSubtitleDiscovered(com.example.data.sources.Subtitle(language = lang, url = reqUrl, format = fmt))
                             }
 
                             // Check if network request is a video stream
@@ -652,6 +793,63 @@ class VideoUrlInterceptor(
             if (qualities.isNotEmpty()) qualities else listOf(VideoQuality("Auto", masterUrl, true, headers))
         } catch (e: Exception) {
             listOf(VideoQuality("Auto", masterUrl, true, headers))
+        }
+    }
+
+    /**
+     * Intercepts media stream along with external subtitles, returning a unified MediaStreamResult.
+     */
+    suspend fun interceptMediaStream(
+        targetUrl: String,
+        episodeId: String = targetUrl,
+        timeoutMs: Long = 18000L,
+        headers: Map<String, String> = emptyMap()
+    ): MediaStreamResult? {
+        val info = interceptVideo(targetUrl, episodeId, timeoutMs, headers)
+        return info?.toMediaStreamResult()
+    }
+
+    companion object {
+        val SUBTITLE_REGEX = Regex("""(\.vtt|\.srt|\.ass|\.ssa|sub\.vtt)($|\?|#)""", RegexOption.IGNORE_CASE)
+
+        fun isSubtitleUrl(url: String): Boolean {
+            val lower = url.lowercase().trim()
+            if (lower.isBlank() || lower.endsWith(".jpg") || lower.endsWith(".png") || lower.endsWith(".webp") || lower.endsWith(".gif") || lower.endsWith(".js") || lower.endsWith(".css")) {
+                return false
+            }
+            return SUBTITLE_REGEX.containsMatchIn(lower) ||
+                    lower.contains(".vtt") ||
+                    lower.contains(".srt") ||
+                    lower.contains(".ass") ||
+                    lower.contains(".ssa") ||
+                    lower.contains("sub.vtt") ||
+                    lower.contains("/subtitles/") ||
+                    lower.contains("/caption") ||
+                    lower.contains("/tracks/")
+        }
+
+        fun checkAndCaptureSubtitle(url: String, headers: Map<String, String> = emptyMap(), language: String = "id"): com.example.data.sources.Subtitle? {
+            if (isSubtitleUrl(url)) {
+                val format = when {
+                    url.contains(".vtt", ignoreCase = true) -> "vtt"
+                    url.contains(".srt", ignoreCase = true) -> "srt"
+                    url.contains(".ass", ignoreCase = true) || url.contains(".ssa", ignoreCase = true) -> "ass"
+                    else -> "vtt"
+                }
+                val label = when {
+                    language.isNotBlank() && language != "id" -> language
+                    url.contains("indonesia", ignoreCase = true) || url.contains("indo", ignoreCase = true) || url.contains("/id.", ignoreCase = true) || url.contains("_id.", ignoreCase = true) || url.contains("-id.", ignoreCase = true) -> "Indonesian"
+                    url.contains("english", ignoreCase = true) || url.contains("eng", ignoreCase = true) || url.contains("/en.", ignoreCase = true) || url.contains("_en.", ignoreCase = true) || url.contains("-en.", ignoreCase = true) -> "English"
+                    url.contains("korean", ignoreCase = true) || url.contains("kor", ignoreCase = true) -> "Korean"
+                    else -> "Indonesian"
+                }
+                return com.example.data.sources.Subtitle(
+                    language = label,
+                    url = url,
+                    format = format
+                )
+            }
+            return null
         }
     }
 }

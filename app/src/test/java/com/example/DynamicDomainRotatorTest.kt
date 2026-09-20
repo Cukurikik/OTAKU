@@ -183,4 +183,69 @@ class DynamicDomainRotatorTest {
         val activeUrl = SourceBaseUrlStore.get(context, "kuramanime", "https://v19.kuramanime.ing/")
         assertEquals("Store should persist the newly discovered healthy mirror", healthyMirror.trimEnd('/'), activeUrl)
     }
+
+    @Test
+    fun testDeadIpFastFailoverAndBypass() = runBlocking {
+        val deadIp1 = "http://178.128.91.191/"
+        val deadIp2 = "http://134.209.105.11/"
+
+        // 1. Static checks
+        assertTrue("Dead IP 178 should be flagged as known dead", SourceHealthProbe.isKnownDeadUrl(deadIp1))
+        assertTrue("Dead IP 134 should be flagged as known dead", SourceHealthProbe.isKnownDeadUrl(deadIp2))
+        assertFalse("Dead IP 178 should not be healthy", SourceHealthProbe.isHealthy(deadIp1))
+        assertFalse("Dead IP 134 should not be healthy", SourceHealthProbe.isHealthy(deadIp2))
+
+        // 2. Fast failover probe check (should return immediately without TCP connection attempt)
+        val probe = SourceHealthProbe()
+        val result1 = probe.probeUrl(deadIp1)
+        assertTrue("Should return DeadEndpoint error instantly", result1 is HealthResult.ERROR && result1.type == "DeadEndpoint")
+
+        val result2 = probe.probeUrl(deadIp2)
+        assertTrue("Should return DeadEndpoint error instantly", result2 is HealthResult.ERROR && result2.type == "DeadEndpoint")
+    }
+
+    @Test
+    fun testActiveHttpsDramaReplacementsAndLegacyAliases() {
+        // 1. DrakorID (replacement for 178 / dramaindo)
+        val drakorid = SourceEndpointRegistry.findById("drakorid")
+        assertNotNull("DrakorID endpoint should exist", drakorid)
+        assertEquals("https://drakorid.net/", drakorid!!.baseUrl)
+        assertTrue(drakorid.mirrors.isNotEmpty())
+
+        // Legacy lookup aliases
+        val legacy178 = SourceEndpointRegistry.findById("drama-ip-178")
+        assertNotNull("Legacy 178 lookup should alias to drakorid", legacy178)
+        assertEquals("drakorid", legacy178!!.id)
+
+        val legacyDramaindo = SourceEndpointRegistry.findById("dramaindo")
+        assertNotNull("Legacy dramaindo lookup should alias to drakorid", legacyDramaindo)
+        assertEquals("drakorid", legacyDramaindo!!.id)
+
+        // 2. NoDrakor (replacement for 134 / drakor)
+        val nodrakor = SourceEndpointRegistry.findById("nodrakor")
+        assertNotNull("NoDrakor endpoint should exist", nodrakor)
+        assertEquals("https://nodrakor.icu/", nodrakor!!.baseUrl)
+        assertTrue(nodrakor.mirrors.isNotEmpty())
+
+        val legacy134 = SourceEndpointRegistry.findById("drama-ip-134")
+        assertNotNull("Legacy 134 lookup should alias to nodrakor", legacy134)
+        assertEquals("nodrakor", legacy134!!.id)
+
+        val legacyDrakor = SourceEndpointRegistry.findById("drakor")
+        assertNotNull("Legacy drakor lookup should alias to nodrakor", legacyDrakor)
+        assertEquals("nodrakor", legacyDrakor!!.id)
+
+        // 3. DramaQu
+        val dramaqu = SourceEndpointRegistry.findById("dramaqu")
+        assertNotNull("DramaQu endpoint should exist", dramaqu)
+        assertEquals("https://dramaqu.is/", dramaqu!!.baseUrl)
+
+        // 4. Available endpoints filter check
+        val dramaEndpoints = SourceEndpointRegistry.getAvailableEndpoints(com.example.data.sources.registry.SourceMode.DRAMA)
+        assertTrue("Should have available drama endpoints", dramaEndpoints.isNotEmpty())
+        assertFalse("No dead raw IPs should be in available endpoints", dramaEndpoints.any { SourceEndpointRegistry.isRawDeadIp(it.baseUrl) })
+        assertTrue("Available endpoints should include drakorid", dramaEndpoints.any { it.id == "drakorid" })
+        assertTrue("Available endpoints should include nodrakor", dramaEndpoints.any { it.id == "nodrakor" })
+        assertTrue("Available endpoints should include dramaqu", dramaEndpoints.any { it.id == "dramaqu" })
+    }
 }

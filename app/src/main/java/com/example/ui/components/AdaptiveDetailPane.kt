@@ -101,11 +101,72 @@ fun DetailStaticHeaderPane(
                         fontWeight = FontWeight.SemiBold
                     )
 
-                    // Badges for Status, Type, and Year
+                    // Badges for Subtitle, Season, Status, Type, and Year
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(6.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        val subtitleStatus = if (item.subtitleStatus.isNotBlank()) item.subtitleStatus else {
+                            val lower = item.title.lowercase()
+                            when {
+                                lower.contains("sub indo") || lower.contains("subtitle indonesia") -> "Sub Indo"
+                                lower.contains("raw") -> "Raw"
+                                lower.contains("eng sub") || lower.contains("english sub") -> "Eng Sub"
+                                else -> if (item.type == ContentType.DRAMA) "Sub Indo" else ""
+                            }
+                        }
+
+                        if (subtitleStatus.isNotBlank()) {
+                            val (bgColor, textColor) = when (subtitleStatus.lowercase()) {
+                                "sub indo", "subtitle indonesia", "indonesian sub", "hardsub" -> Pair(Color(0xFF2E7D32), Color.White)
+                                "raw" -> Pair(Color(0xFFE65100), Color.White)
+                                "eng sub", "english sub" -> Pair(Color(0xFF1565C0), Color.White)
+                                else -> Pair(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+                            }
+                            Surface(
+                                color = bgColor,
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Subtitles,
+                                        contentDescription = null,
+                                        tint = textColor,
+                                        modifier = Modifier.size(11.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(3.dp))
+                                    Text(
+                                        text = subtitleStatus,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = textColor
+                                    )
+                                }
+                            }
+                        }
+
+                        val seasonNumber = item.seasonNumber ?: run {
+                            val regex = Regex("(?i)(?:season|s)\\s*(\\d+)")
+                            regex.find(item.title)?.groupValues?.get(1)?.toIntOrNull()
+                        }
+                        if (seasonNumber != null) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primaryContainer,
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = "Season $seasonNumber",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 3.dp)
+                                )
+                            }
+                        }
+
                         SuggestionChip(
                             onClick = {},
                             label = {
@@ -235,6 +296,47 @@ fun DetailStaticHeaderPane(
                             onClick = {},
                             label = { Text(genre, style = MaterialTheme.typography.bodySmall) }
                         )
+                    }
+                }
+            }
+
+            // Pemeran / Cast List Section
+            if (item.castList.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(16.dp))
+                Text(
+                    text = "Pemeran & Karakter",
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Spacer(modifier = Modifier.height(6.dp))
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    item.castList.forEach { actor ->
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                            border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Person,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(14.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = actor,
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -412,6 +514,52 @@ fun DetailEpisodeListPane(
 
                         if (contentType == ContentType.DRAMA) {
                             val watchAction = { onWatchEpisode(chapter.id, chapter.title) }
+                            val subtitleStatus by remember(chapter.title, chapter.subtitleStatus) {
+                                derivedStateOf {
+                                    if (chapter.subtitleStatus.isNotBlank()) chapter.subtitleStatus else {
+                                        val lower = chapter.title.lowercase()
+                                        when {
+                                            lower.contains("sub indo") || lower.contains("subtitle indonesia") -> "Sub Indo"
+                                            lower.contains("raw") -> "Raw"
+                                            lower.contains("eng sub") || lower.contains("english sub") -> "Eng Sub"
+                                            else -> "Sub Indo"
+                                        }
+                                    }
+                                }
+                            }
+                            val seasonNumber by remember(chapter.title, chapter.seasonNumber) {
+                                derivedStateOf {
+                                    chapter.seasonNumber ?: run {
+                                        val regex = Regex("(?i)(?:season|s)\\s*(\\d+)")
+                                        regex.find(chapter.title)?.groupValues?.get(1)?.toIntOrNull()
+                                    }
+                                }
+                            }
+                            val displayTitle by remember(chapter.title, seasonNumber) {
+                                derivedStateOf {
+                                    val sNum = seasonNumber
+                                    if (sNum != null && !chapter.title.contains("Season", ignoreCase = true) && !chapter.title.startsWith("S", ignoreCase = true)) {
+                                        "Season $sNum - ${chapter.title}"
+                                    } else {
+                                        chapter.title
+                                    }
+                                }
+                            }
+                            val progress by remember(chapter.lastWatchedPositionMs, chapter.totalDurationMs, entry?.lastPageRead, isRead) {
+                                derivedStateOf {
+                                    if (chapter.totalDurationMs > 0L) {
+                                        (chapter.lastWatchedPositionMs.toFloat() / chapter.totalDurationMs.toFloat()).coerceIn(0f, 1f)
+                                    } else if (entry != null && entry.lastPageRead > 0) {
+                                        val fallbackDuration = 45 * 60 * 1000f
+                                        (entry.lastPageRead.toFloat() / fallbackDuration).coerceIn(0f, 1f)
+                                    } else if (isRead) {
+                                        1.0f
+                                    } else {
+                                        0.0f
+                                    }
+                                }
+                            }
+
                             Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -421,56 +569,108 @@ fun DetailEpisodeListPane(
                                     )
                                     .clickable(onClick = watchAction),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (isRead) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface
+                                    containerColor = if (isRead || progress >= 0.9f) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface
                                 ),
                                 shape = RoundedCornerShape(10.dp)
                             ) {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(12.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Box(
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Row(
                                         modifier = Modifier
-                                            .size(42.dp)
-                                            .clip(RoundedCornerShape(8.dp))
-                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)),
-                                        contentAlignment = Alignment.Center
+                                            .fillMaxWidth()
+                                            .padding(12.dp),
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
-                                            imageVector = Icons.Default.PlayArrow,
-                                            contentDescription = "Play",
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                    Spacer(modifier = Modifier.width(12.dp))
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = chapter.title,
-                                            fontWeight = if (isRead) FontWeight.Normal else FontWeight.SemiBold,
-                                            color = if (isRead) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 2,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                        if (chapter.date.isNotBlank()) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(42.dp)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(
+                                                    if (isRead || progress >= 0.9f) MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                                                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                                                ),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isRead || progress >= 0.9f) Icons.Default.Check else Icons.Default.PlayArrow,
+                                                contentDescription = "Play",
+                                                tint = if (isRead || progress >= 0.9f) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.width(12.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
                                             Text(
-                                                text = chapter.date,
-                                                style = MaterialTheme.typography.bodySmall,
-                                                color = MaterialTheme.colorScheme.outline
+                                                text = displayTitle,
+                                                fontWeight = if (isRead) FontWeight.Normal else FontWeight.SemiBold,
+                                                color = if (isRead) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                val (badgeBg, badgeText) = when (subtitleStatus.lowercase()) {
+                                                    "sub indo", "subtitle indonesia", "indonesian sub", "hardsub" -> Pair(Color(0xFF2E7D32), Color.White)
+                                                    "raw" -> Pair(Color(0xFFE65100), Color.White)
+                                                    "eng sub", "english sub" -> Pair(Color(0xFF1565C0), Color.White)
+                                                    else -> Pair(MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+                                                }
+                                                Surface(
+                                                    color = badgeBg,
+                                                    shape = RoundedCornerShape(3.dp)
+                                                ) {
+                                                    Text(
+                                                        text = subtitleStatus,
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.Bold,
+                                                        color = badgeText,
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                                                    )
+                                                }
+
+                                                if (chapter.date.isNotBlank()) {
+                                                    Text(
+                                                        text = chapter.date,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.outline
+                                                    )
+                                                }
+
+                                                if (progress > 0f) {
+                                                    val percentText = if (isRead || progress >= 0.9f) "Selesai" else "${(progress * 100).toInt()}%"
+                                                    Text(
+                                                        text = "• $percentText",
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        fontWeight = FontWeight.SemiBold,
+                                                        color = if (isRead || progress >= 0.9f) MaterialTheme.colorScheme.primary else Color(0xFFFFB800)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                if (isDownloaded) onDeleteDownloadedChapter(chapter.id)
+                                                else onDownloadChapter(chapter.id, chapter.title)
+                                            }
+                                        ) {
+                                            Icon(
+                                                imageVector = if (isDownloaded) Icons.Default.CheckCircle else Icons.Default.Download,
+                                                contentDescription = "Download",
+                                                tint = if (isDownloaded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                         }
                                     }
-                                    IconButton(
-                                        onClick = {
-                                            if (isDownloaded) onDeleteDownloadedChapter(chapter.id)
-                                            else onDownloadChapter(chapter.id, chapter.title)
-                                        }
-                                    ) {
-                                        Icon(
-                                            imageVector = if (isDownloaded) Icons.Default.CheckCircle else Icons.Default.Download,
-                                            contentDescription = "Download",
-                                            tint = if (isDownloaded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+
+                                    // Linear Progress Indicator
+                                    if (progress > 0f) {
+                                        LinearProgressIndicator(
+                                            progress = { progress },
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .height(3.dp),
+                                            color = if (isRead || progress >= 0.9f) MaterialTheme.colorScheme.primary else Color(0xFFFFB800),
+                                            trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                                         )
                                     }
                                 }

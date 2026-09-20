@@ -7,7 +7,7 @@ import com.example.data.sources.templates.DramaScraperTemplate
 class DrakorSource(context: Context) : DramaScraperTemplate(context) {
     override val sourceId: String = "drakor"
     override val sourceName: String = "Drakor"
-    override val baseUrl: String = "http://134.209.105.11"
+    override val baseUrl: String = "https://nodrakor.icu"
     override val contentType = ContentType.DRAMA
     
     override val selectors = DramaSelectors(

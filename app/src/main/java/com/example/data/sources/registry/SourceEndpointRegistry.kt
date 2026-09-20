@@ -239,23 +239,69 @@ object SourceEndpointRegistry {
             "lokalfilm", "LokalFilm", SourceMode.DRAMA, "https://lokalfilm.id/",
             mirrors = listOf("https://lokalfilm.vip/", "https://lokalfilm.me/")
         ),
-        SourceEndpoint("drama-ip-178", "Legacy Drama IP 178", SourceMode.DRAMA, "http://178.128.91.191/", EndpointStatus.DEAD, "IP endpoint; treat as legacy and replace with a current hostname."),
-        SourceEndpoint("drama-ip-134", "Legacy Drama IP 134", SourceMode.DRAMA, "http://134.209.105.11/", EndpointStatus.DEAD, "IP endpoint; treat as legacy and replace with a current hostname.")
+        SourceEndpoint(
+            "drakorid", "DrakorID", SourceMode.DRAMA, "https://drakorid.net/",
+            status = EndpointStatus.ACTIVE,
+            notes = "Active HTTPS replacement for legacy IP 178.128.91.191 (dramaindo)",
+            mirrors = listOf("https://drakorid.in/", "https://drakorid.cc/")
+        ),
+        SourceEndpoint(
+            "nodrakor", "NoDrakor", SourceMode.DRAMA, "https://nodrakor.icu/",
+            status = EndpointStatus.ACTIVE,
+            notes = "Active HTTPS replacement for legacy IP 134.209.105.11 (drakor)",
+            mirrors = listOf("https://nodrakor.id/", "https://nodrakor.org/")
+        ),
+        SourceEndpoint(
+            "dramaqu", "DramaQu", SourceMode.DRAMA, "https://dramaqu.is/",
+            status = EndpointStatus.ACTIVE,
+            notes = "Active official drama streaming portal",
+            mirrors = listOf("https://dramaqu.my/", "https://dramaqu.cam/")
+        )
     )
 
     fun forMode(mode: SourceMode): List<SourceEndpoint> = endpoints.filter { it.mode == mode }
 
+    /**
+     * Identifies known dead raw IP addresses that should be immediately bypassed with 0s delay.
+     */
+    fun isRawDeadIp(urlOrHost: String): Boolean {
+        val lower = urlOrHost.lowercase()
+        return lower.contains("178.128.91.191") || lower.contains("134.209.105.11")
+    }
+
+    /**
+     * Returns only active/healthy endpoints (filtering out DEAD endpoints and dead raw IPs).
+     */
+    fun getAvailableEndpoints(mode: SourceMode? = null): List<SourceEndpoint> {
+        val list = if (mode != null) forMode(mode) else endpoints
+        return list.filter { ep ->
+            ep.status != EndpointStatus.DEAD && !isRawDeadIp(ep.baseUrl)
+        }
+    }
+
     fun findById(sourceId: String): SourceEndpoint? {
         val clean = sourceId.trim().lowercase()
+        // Map legacy aliases to active HTTPS endpoints
+        val resolvedId = when (clean) {
+            "drama-ip-178", "ip-178", "dramaindo" -> "drakorid"
+            "drama-ip-134", "ip-134", "drakor" -> "nodrakor"
+            else -> clean
+        }
+
         return endpoints.firstOrNull {
-            it.id.equals(clean, ignoreCase = true) ||
-            clean.contains(it.id) ||
-            it.id.contains(clean) ||
-            it.name.equals(clean, ignoreCase = true)
+            it.id.equals(resolvedId, ignoreCase = true) ||
+            resolvedId.contains(it.id) ||
+            it.id.contains(resolvedId) ||
+            it.name.equals(resolvedId, ignoreCase = true)
         }
     }
 
     fun findByHostOrUrl(url: String): SourceEndpoint? {
+        if (isRawDeadIp(url)) {
+            if (url.contains("178.128.91.191")) return findById("drakorid")
+            if (url.contains("134.209.105.11")) return findById("nodrakor")
+        }
+
         val host = runCatching { URI(url).host?.lowercase() }.getOrNull() ?: url.lowercase()
         return endpoints.firstOrNull { endpoint ->
             val epHost = runCatching { URI(endpoint.baseUrl).host?.lowercase() }.getOrNull() ?: ""
@@ -270,15 +316,20 @@ object SourceEndpointRegistry {
     fun getAllMirrors(sourceId: String): List<String> {
         val ep = findById(sourceId) ?: findByHostOrUrl(sourceId) ?: return emptyList()
         val list = mutableListOf<String>()
-        list.add(ep.baseUrl.trimEnd('/'))
+        val base = ep.baseUrl.trimEnd('/')
+        if (!isRawDeadIp(base)) {
+            list.add(base)
+        }
         ep.mirrors.forEach { m ->
             val trimmed = m.trimEnd('/')
-            if (trimmed.isNotBlank() && !list.contains(trimmed)) {
+            if (trimmed.isNotBlank() && !isRawDeadIp(trimmed) && !list.contains(trimmed)) {
                 list.add(trimmed)
             }
         }
         return list
     }
+
+    fun getActiveMirrors(sourceId: String): List<String> = getAllMirrors(sourceId)
 
     fun getNextMirror(sourceId: String = "", currentUrlOrBase: String = ""): String? {
         val ep = if (sourceId.isNotBlank()) findById(sourceId) ?: findByHostOrUrl(sourceId)

@@ -35,7 +35,10 @@ data class ScrapedDetail(
     val description: String = "",
     val genres: List<String> = emptyList(),
     val status: String = "",
-    val year: String = ""
+    val year: String = "",
+    val castList: List<String> = emptyList(),
+    val subtitleStatus: String = "Sub Indo",
+    val seasonNumber: Int? = null
 )
 
 data class ScrapedEpisode(

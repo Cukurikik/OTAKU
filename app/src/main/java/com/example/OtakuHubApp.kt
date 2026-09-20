@@ -62,6 +62,7 @@ class OtakuHubApp : Application(), ImageLoaderFactory {
 
     override fun onCreate() {
         super.onCreate()
+        com.example.util.WebViewHelper.initWebViewEnvironment(this)
         try { com.example.data.NetworkModule.userAgent = android.webkit.WebSettings.getDefaultUserAgent(this) } catch(e: Exception) {}
         instance = this
 

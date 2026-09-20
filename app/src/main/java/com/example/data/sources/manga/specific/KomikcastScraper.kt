@@ -43,7 +43,8 @@ class KomikcastScraper(private val context: Context) : ContentSource, Configurab
             val pattern = Pattern.compile("data-page=[\"']([\\s\\S]*?)[\"']")
             val matcher = pattern.matcher(html)
             if (matcher.find()) {
-                val rawJson = matcher.group(1)
+                val group1 = matcher.group(1) ?: return null
+                val rawJson = group1
                     .replace("&quot;", "\"")
                     .replace("&amp;", "&")
                     .replace("&#039;", "'")

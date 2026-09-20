@@ -77,37 +77,124 @@ fun SubtitleCustomizationDialog(
                     }
                 }
 
-                // Subtitle Offset
-                Column {
-                    Text("Offset Subtitle (ms)", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Medium)
+                // Subtitle Offset Real-Time Controller (-5.0s to +5.0s)
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(
+                            MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                            shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp)
+                        )
+                        .padding(12.dp)
+                ) {
                     Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.padding(top = 4.dp),
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        IconButton(
-                            onClick = { onOffsetChange(subtitleOffsetMs - 500) },
-                            modifier = Modifier
-                                .background(Color.DarkGray, CircleShape)
-                                .size(36.dp)
-                        ) {
-                            Icon(Icons.Default.Remove, contentDescription = "-500ms", tint = Color.White)
+                        Text(
+                            "Sinkronisasi Subtitle (Offset)",
+                            style = MaterialTheme.typography.labelLarge,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        val offsetSec = subtitleOffsetMs / 1000.0f
+                        val offsetLabel = when {
+                            subtitleOffsetMs > 0 -> "+${String.format(java.util.Locale.US, "%.1f", offsetSec)}s (+${subtitleOffsetMs}ms)"
+                            subtitleOffsetMs < 0 -> "${String.format(java.util.Locale.US, "%.1f", offsetSec)}s (${subtitleOffsetMs}ms)"
+                            else -> "0.0s (Sinkron Pas)"
                         }
                         Text(
-                            text = "${if (subtitleOffsetMs > 0) "+" else ""}$subtitleOffsetMs ms",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.width(70.dp),
-                            textAlign = TextAlign.Center
+                            text = offsetLabel,
+                            style = MaterialTheme.typography.labelMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = if (subtitleOffsetMs != 0L) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        IconButton(
-                            onClick = { onOffsetChange(subtitleOffsetMs + 500) },
-                            modifier = Modifier
-                                .background(Color.DarkGray, CircleShape)
-                                .size(36.dp)
+                    }
+
+                    // Slider from -5.0s (-5000ms) to +5.0s (+5000ms)
+                    val sliderVal = (subtitleOffsetMs / 1000f).coerceIn(-5.0f, 5.0f)
+                    Slider(
+                        value = sliderVal,
+                        onValueChange = { newVal ->
+                            val clamped = newVal.coerceIn(-5.0f, 5.0f)
+                            val roundedMs = ((clamped * 10).toInt() * 100).toLong()
+                            onOffsetChange(roundedMs)
+                        },
+                        valueRange = -5.0f..5.0f,
+                        steps = 99, // 100ms steps
+                        modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Quick Step Adjustment Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FilledTonalButton(
+                                onClick = { onOffsetChange((subtitleOffsetMs - 1000L).coerceIn(-5000L, 5000L)) },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier.height(30.dp)
+                            ) {
+                                Text("-1s", style = MaterialTheme.typography.labelSmall)
+                            }
+                            FilledTonalButton(
+                                onClick = { onOffsetChange((subtitleOffsetMs - 500L).coerceIn(-5000L, 5000L)) },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier.height(30.dp)
+                            ) {
+                                Text("-0.5s", style = MaterialTheme.typography.labelSmall)
+                            }
+                            FilledTonalButton(
+                                onClick = { onOffsetChange((subtitleOffsetMs - 100L).coerceIn(-5000L, 5000L)) },
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier.height(30.dp)
+                            ) {
+                                Text("-0.1s", style = MaterialTheme.typography.labelSmall)
+                            }
+                        }
+
+                        // Reset 0s Button
+                        OutlinedButton(
+                            onClick = { onOffsetChange(0L) },
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                            modifier = Modifier.height(30.dp)
                         ) {
-                            Icon(Icons.Default.Add, contentDescription = "+500ms", tint = Color.White)
+                            Text("Reset", style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                        }
+
+                        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            FilledTonalButton(
+                                onClick = { onOffsetChange((subtitleOffsetMs + 100L).coerceIn(-5000L, 5000L)) },
+                                contentPadding = PaddingValues(horizontal = 6.dp, vertical = 2.dp),
+                                modifier = Modifier.height(30.dp)
+                            ) {
+                                Text("+0.1s", style = MaterialTheme.typography.labelSmall)
+                            }
+                            FilledTonalButton(
+                                onClick = { onOffsetChange((subtitleOffsetMs + 500L).coerceIn(-5000L, 5000L)) },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier.height(30.dp)
+                            ) {
+                                Text("+0.5s", style = MaterialTheme.typography.labelSmall)
+                            }
+                            FilledTonalButton(
+                                onClick = { onOffsetChange((subtitleOffsetMs + 1000L).coerceIn(-5000L, 5000L)) },
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 2.dp),
+                                modifier = Modifier.height(30.dp)
+                            ) {
+                                Text("+1s", style = MaterialTheme.typography.labelSmall)
+                            }
                         }
                     }
+
+                    Text(
+                        text = "Formulasi: T_display = T_current + ΔT_offset (-5.0s s/d +5.0s)",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
                 }
 
                 // Background Audio Toggle

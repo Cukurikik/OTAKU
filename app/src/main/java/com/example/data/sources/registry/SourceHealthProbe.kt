@@ -18,9 +18,17 @@ class SourceHealthProbe(
         .followSslRedirects(true)
         .build()
 ) {
-    suspend fun check(endpoint: SourceEndpoint): HealthResult = probeUrl(endpoint.baseUrl)
+    suspend fun check(endpoint: SourceEndpoint): HealthResult {
+        if (endpoint.status == EndpointStatus.DEAD || SourceEndpointRegistry.isRawDeadIp(endpoint.baseUrl)) {
+            return HealthResult.ERROR("DeadEndpoint", "Endpoint ${endpoint.id} is marked as DEAD or raw dead IP")
+        }
+        return probeUrl(endpoint.baseUrl)
+    }
 
     suspend fun probeUrl(url: String): HealthResult = withContext(Dispatchers.IO) {
+        if (isKnownDeadUrl(url)) {
+            return@withContext HealthResult.ERROR("DeadEndpoint", "Endpoint $url is known dead and bypassed (0s delay)")
+        }
         val target = if (url.startsWith("http://") || url.startsWith("https://")) url else "https://$url"
         try {
             val request = Request.Builder()
@@ -110,6 +118,22 @@ class SourceHealthProbe(
     }
 
     companion object {
+        /**
+         * Returns true if the URL or host corresponds to a known dead raw IP or dead endpoint.
+         */
+        fun isKnownDeadUrl(url: String): Boolean {
+            if (SourceEndpointRegistry.isRawDeadIp(url)) return true
+            val ep = SourceEndpointRegistry.findByHostOrUrl(url)
+            return ep != null && ep.status == EndpointStatus.DEAD
+        }
+
+        /**
+         * Returns true if the given endpoint URL is considered healthy/available without hitting known dead servers.
+         */
+        fun isHealthy(endpointUrl: String): Boolean {
+            return !isKnownDeadUrl(endpointUrl)
+        }
+
         /**
          * Replaces the domain (scheme + host + port) of [originalUrl] with the base domain of [newBaseUrl],
          * preserving the raw path, query, and fragment.

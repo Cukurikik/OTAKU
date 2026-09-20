@@ -1,9 +1,11 @@
 package com.example.data.models
 
+import androidx.compose.runtime.Immutable
 import androidx.room.Entity
 import androidx.room.Index
 import kotlinx.serialization.Serializable
 
+@Immutable
 @Entity(
     tableName = "library_entries",
     primaryKeys = ["profileId", "sourceId", "mangaId"],
@@ -28,6 +30,7 @@ data class LibraryEntry(
     val lastUpdated: Long = System.currentTimeMillis()
 )
 
+@Immutable
 @Entity(
     tableName = "chapter_entries",
     primaryKeys = ["profileId", "sourceId", "mangaId", "chapterId"],

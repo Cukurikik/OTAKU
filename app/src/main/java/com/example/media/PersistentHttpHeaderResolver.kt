@@ -26,6 +26,82 @@ fun DataSpec.withAdditionalHeaders(additionalHeaders: Map<String, String>): Data
 }
 
 /**
+ * Registry to hold active download request headers mapped by downloadId, stream URL, and host.
+ * Guarantees that any Media3 background download (HLS manifest, AES-128 key, or TS segments)
+ * receives the exact HTTP headers (Referer, Origin, Cookie, User-Agent) without HTTP 403 Forbidden.
+ */
+object DownloadHeaderRegistry {
+    private val headersByDownloadId = java.util.concurrent.ConcurrentHashMap<String, Map<String, String>>()
+    private val headersByHost = java.util.concurrent.ConcurrentHashMap<String, Map<String, String>>()
+    private val headersByUrl = java.util.concurrent.ConcurrentHashMap<String, Map<String, String>>()
+    private val aes128Keys = java.util.concurrent.ConcurrentHashMap<String, ByteArray>()
+    private val localKeyMappings = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    fun register(downloadId: String, headers: Map<String, String>, url: String? = null) {
+        if (headers.isNotEmpty()) {
+            headersByDownloadId[downloadId] = headers
+            url?.let {
+                headersByUrl[it] = headers
+                try {
+                    val uri = Uri.parse(it)
+                    val host = uri.host?.lowercase()
+                    if (!host.isNullOrBlank()) {
+                        headersByHost[host] = headers
+                    }
+                } catch (_: Throwable) {}
+            }
+        }
+    }
+
+    fun getHeaders(downloadId: String): Map<String, String>? = headersByDownloadId[downloadId]
+
+    fun getHeadersForUri(uri: Uri): Map<String, String> {
+        val uriStr = uri.toString()
+        headersByUrl[uriStr]?.let { return it }
+        val host = uri.host?.lowercase() ?: return emptyMap()
+        return headersByHost[host] ?: emptyMap()
+    }
+
+    /**
+     * Registers and caches an AES-128 decryption key in-memory by key URL or identifier.
+     */
+    fun registerAes128Key(keyUri: String, keyBytes: ByteArray) {
+        if (keyBytes.isNotEmpty()) {
+            aes128Keys[keyUri] = keyBytes
+        }
+    }
+
+    /**
+     * Retrieves a cached AES-128 decryption key bytes.
+     */
+    fun getAes128Key(keyUri: String): ByteArray? = aes128Keys[keyUri]
+
+    /**
+     * Registers a local filesystem mapping for a remote AES-128 key URI.
+     */
+    fun registerLocalKeyMapping(remoteKeyUri: String, localFilePath: String) {
+        localKeyMappings[remoteKeyUri] = localFilePath
+    }
+
+    /**
+     * Gets the local filesystem file path mapped to a remote AES-128 key URI.
+     */
+    fun getLocalKeyMapping(remoteKeyUri: String): String? = localKeyMappings[remoteKeyUri]
+
+    fun unregister(downloadId: String) {
+        headersByDownloadId.remove(downloadId)
+    }
+
+    fun clear() {
+        headersByDownloadId.clear()
+        headersByHost.clear()
+        headersByUrl.clear()
+        aes128Keys.clear()
+        localKeyMappings.clear()
+    }
+}
+
+/**
  * Custom ResolvingDataSource.Resolver that guarantees strict network authentication
  * retention (Cookie, Origin, Referer, User-Agent) across chunked streaming requests
  * for protected external video hosts such as DoodStream, Mp4Upload, and FileLions.
@@ -63,6 +139,15 @@ class PersistentHttpHeaderResolver(
             customHeaders: Map<String, String> = emptyMap(),
             activeStreamUrl: String = ""
         ): Map<String, String> {
+            val registryHeaders = DownloadHeaderRegistry.getHeadersForUri(requestUri)
+            val mergedCustomHeaders = if (registryHeaders.isNotEmpty()) {
+                val combined = HashMap(registryHeaders)
+                customHeaders.forEach { (k, v) -> if (v.isNotBlank()) combined[k] = v }
+                combined
+            } else {
+                customHeaders
+            }
+
             val resolvedHeaders = mutableMapOf<String, String>()
 
             val hostOrigin: String
@@ -77,14 +162,14 @@ class PersistentHttpHeaderResolver(
                         requestHost.contains("do0od") -> "https://do0od.com"
                         else -> "https://dood.to"
                     }
-                    hostOrigin = customHeaders["Origin"] ?: customHeaders["origin"] ?: baseHost
-                    hostReferer = customHeaders["Referer"] ?: customHeaders["referer"] ?: "$baseHost/"
+                    hostOrigin = mergedCustomHeaders["Origin"] ?: mergedCustomHeaders["origin"] ?: baseHost
+                    hostReferer = mergedCustomHeaders["Referer"] ?: mergedCustomHeaders["referer"] ?: "$baseHost/"
                 }
 
                 // 2. Mp4Upload and its subdomains (*.mp4upload.com)
                 isMp4UploadHost(requestHost) -> {
-                    hostOrigin = customHeaders["Origin"] ?: customHeaders["origin"] ?: "https://www.mp4upload.com"
-                    hostReferer = customHeaders["Referer"] ?: customHeaders["referer"] ?: "https://www.mp4upload.com/"
+                    hostOrigin = mergedCustomHeaders["Origin"] ?: mergedCustomHeaders["origin"] ?: "https://www.mp4upload.com"
+                    hostReferer = mergedCustomHeaders["Referer"] ?: mergedCustomHeaders["referer"] ?: "https://www.mp4upload.com/"
                 }
 
                 // 3. FileLions, Vidhide, Streamwish and edge subdomains
@@ -94,20 +179,20 @@ class PersistentHttpHeaderResolver(
                         requestHost.contains("streamwish") -> "https://streamwish.to"
                         else -> "https://filelions.to"
                     }
-                    hostOrigin = customHeaders["Origin"] ?: customHeaders["origin"] ?: baseDomain
-                    hostReferer = customHeaders["Referer"] ?: customHeaders["referer"] ?: "$baseDomain/"
+                    hostOrigin = mergedCustomHeaders["Origin"] ?: mergedCustomHeaders["origin"] ?: baseDomain
+                    hostReferer = mergedCustomHeaders["Referer"] ?: mergedCustomHeaders["referer"] ?: "$baseDomain/"
                 }
 
                 // 4. Streamtape and subdomains
                 requestHost.contains("streamtape") -> {
-                    hostOrigin = customHeaders["Origin"] ?: customHeaders["origin"] ?: "https://streamtape.com"
-                    hostReferer = customHeaders["Referer"] ?: customHeaders["referer"] ?: "https://streamtape.com/"
+                    hostOrigin = mergedCustomHeaders["Origin"] ?: mergedCustomHeaders["origin"] ?: "https://streamtape.com"
+                    hostReferer = mergedCustomHeaders["Referer"] ?: mergedCustomHeaders["referer"] ?: "https://streamtape.com/"
                 }
 
                 // 5. Default / Other external hosts
                 else -> {
-                    val customReferer = customHeaders["Referer"] ?: customHeaders["referer"]
-                    val customOrigin = customHeaders["Origin"] ?: customHeaders["origin"]
+                    val customReferer = mergedCustomHeaders["Referer"] ?: mergedCustomHeaders["referer"]
+                    val customOrigin = mergedCustomHeaders["Origin"] ?: mergedCustomHeaders["origin"]
 
                     if (!customReferer.isNullOrBlank()) {
                         hostReferer = customReferer
@@ -156,7 +241,7 @@ class PersistentHttpHeaderResolver(
             }
 
             // Session Cookie resolution (prioritize extracted headers, fallback to system Webkit CookieManager)
-            val customCookie = customHeaders["Cookie"] ?: customHeaders["cookie"]
+            val customCookie = mergedCustomHeaders["Cookie"] ?: mergedCustomHeaders["cookie"]
             val sessionCookie = if (!customCookie.isNullOrBlank()) {
                 customCookie
             } else {
@@ -173,11 +258,11 @@ class PersistentHttpHeaderResolver(
             }
 
             // User-Agent consistency
-            val ua = customHeaders["User-Agent"] ?: customHeaders["user-agent"] ?: NetworkModule.userAgent
+            val ua = mergedCustomHeaders["User-Agent"] ?: mergedCustomHeaders["user-agent"] ?: NetworkModule.userAgent
             resolvedHeaders["User-Agent"] = ua
 
             // Retain any remaining authentication or custom headers (e.g. X-Requested-With, Authorization, blob tokens)
-            for ((key, value) in customHeaders) {
+            for ((key, value) in mergedCustomHeaders) {
                 if (!resolvedHeaders.containsKey(key) &&
                     !key.equals("Referer", ignoreCase = true) &&
                     !key.equals("Origin", ignoreCase = true) &&

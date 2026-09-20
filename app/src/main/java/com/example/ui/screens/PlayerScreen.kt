@@ -67,6 +67,7 @@ import com.example.media.PersistentResolvingDataSourceFactory
 import com.example.media.withAdditionalHeaders
 import com.example.ui.player.SubtitleCue
 import com.example.ui.player.SubtitleParser
+import com.example.ui.player.SubtitleSyncController
 import com.example.ui.player.TrackSelectorHelper
 import com.example.ui.player.components.AudioOnlyOverlay
 import com.example.ui.player.components.AutoNextEpisodeOverlay
@@ -530,20 +531,9 @@ fun ExoPlayerView(
 
     var showAutoNextCountdown by remember { mutableStateOf(false) }
     var autoNextCountdownSeconds by remember { mutableIntStateOf(5) }
+    var isAutoNextCancelled by remember { mutableStateOf(false) }
     var currentAspectRatioMode by remember { mutableStateOf(AspectRatioMode.FIT) }
     var isAudioOnlyMode by rememberSaveable { mutableStateOf(false) }
-
-    LaunchedEffect(showAutoNextCountdown) {
-        if (showAutoNextCountdown) {
-            autoNextCountdownSeconds = 5
-            while (autoNextCountdownSeconds > 0) {
-                delay(1000)
-                autoNextCountdownSeconds--
-            }
-            showAutoNextCountdown = false
-            currentOnNextEpisode()
-        }
-    }
 
     var isPlayingOrBuffered by remember { mutableStateOf(false) }
     var currentUrl by remember { mutableStateOf(initialUrl) }
@@ -552,6 +542,25 @@ fun ExoPlayerView(
     var currentSubtitles by remember { mutableStateOf(subtitles) }
     var currentQualityLabel by remember {
         mutableStateOf(qualities.find { it.url == initialUrl }?.qualityLabel ?: "Auto")
+    }
+
+    LaunchedEffect(currentUrl) {
+        isAutoNextCancelled = false
+        showAutoNextCountdown = false
+    }
+
+    LaunchedEffect(showAutoNextCountdown) {
+        if (showAutoNextCountdown) {
+            while (autoNextCountdownSeconds > 0) {
+                delay(1000)
+                if (!showAutoNextCountdown || isAutoNextCancelled) break
+                autoNextCountdownSeconds--
+            }
+            if (showAutoNextCountdown && !isAutoNextCancelled) {
+                showAutoNextCountdown = false
+                currentOnNextEpisode()
+            }
+        }
     }
 
     var currentHeaders by remember {
@@ -710,10 +719,8 @@ fun ExoPlayerView(
                             isPlayingOrBuffered = true
                         }
                         if (playbackState == Player.STATE_ENDED) {
-                            if (hasNextEpisode) {
-                                showAutoNextCountdown = true
-                                autoNextCountdownSeconds = 5
-                            } else {
+                            if (hasNextEpisode && !isAutoNextCancelled) {
+                                showAutoNextCountdown = false
                                 currentOnNextEpisode()
                             }
                         }
@@ -887,11 +894,16 @@ fun ExoPlayerView(
         }
     }
 
+    val subtitleSyncController = remember { SubtitleSyncController(subtitleOffsetMs) }
+    LaunchedEffect(subtitleOffsetMs) {
+        subtitleSyncController.applyOffsetMs(subtitleOffsetMs)
+    }
+
     LaunchedEffect(currentPlayer, subtitleOffsetMs, parsedExternalSubtitles) {
         if (parsedExternalSubtitles.isEmpty()) return@LaunchedEffect
         while (true) {
-            val pos = currentPlayer.currentPosition - subtitleOffsetMs
-            val active = parsedExternalSubtitles.filter { pos in it.startMs..it.endMs }
+            val displayTime = subtitleSyncController.calculateDisplayTime(currentPlayer.currentPosition)
+            val active = parsedExternalSubtitles.filter { displayTime in it.startMs..it.endMs }
             if (active != activeExternalCues) {
                 activeExternalCues = active
                 activeSubtitleText = active.joinToString("\n") { it.text }
@@ -912,6 +924,29 @@ fun ExoPlayerView(
                     if (!hasTriggered80Percent && currentPosition >= duration * 0.8) {
                         hasTriggered80Percent = true
                         currentOn80Percent()
+                    }
+                }
+            }
+        }
+    }
+
+    // Continuous Playback Check Loop: t_sisa = T_total - T_current <= 10s
+    LaunchedEffect(currentPlayer, currentUrl, hasNextEpisode) {
+        while (true) {
+            delay(1000)
+            if (currentPlayer.isPlaying && hasNextEpisode && !isAutoNextCancelled) {
+                val duration = currentPlayer.duration
+                val currentPosition = currentPlayer.currentPosition
+                if (duration > 0L) {
+                    val remainingTime = duration - currentPosition
+                    if (remainingTime in 1..10_000L) {
+                        if (!showAutoNextCountdown) {
+                            showAutoNextCountdown = true
+                            val secs = (remainingTime / 1000L).toInt().coerceIn(1, 10).coerceAtMost(5)
+                            autoNextCountdownSeconds = secs
+                        }
+                    } else if (remainingTime > 10_000L && showAutoNextCountdown) {
+                        showAutoNextCountdown = false
                     }
                 }
             }
@@ -1247,11 +1282,13 @@ fun ExoPlayerView(
             nextEpisodeTitle = nextEpisodeTitle,
             countdownSeconds = autoNextCountdownSeconds,
             totalSeconds = 5,
+            isCornerOverlay = true,
             onPlayNow = {
                 showAutoNextCountdown = false
                 currentOnNextEpisode()
             },
             onCancel = {
+                isAutoNextCancelled = true
                 showAutoNextCountdown = false
             }
         )

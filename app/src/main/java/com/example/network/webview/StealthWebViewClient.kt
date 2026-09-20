@@ -15,12 +15,29 @@ import com.example.util.WebViewHelper
  * - Spoofing WebGL Vendor (Intel Inc.) & Renderer (Intel Iris OpenGL Engine)
  * - Canvas Fingerprint micro-noise injection
  * - Spoofing platform attributes (languages, plugins, hardwareConcurrency)
+ * - Simulasi interaksi user (touchstart, pointerdown, mousemove) saat challenge terdeteksi
  */
 val STEALTH_JS = """
     (function() {
-        // 1. Mask navigator.webdriver
+        // 1. Mask navigator.webdriver & automated driver properties
         try {
             Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
+        } catch(e) {}
+        try {
+            delete window.cdc_adoQpoasnfa76pfcZLmcfl_Array;
+            delete window.cdc_adoQpoasnfa76pfcZLmcfl_Promise;
+            delete window.cdc_adoQpoasnfa76pfcZLmcfl_Symbol;
+            delete window.__webdriver_evaluate;
+            delete window.__selenium_evaluate;
+            delete window.__webdriver_script_function;
+            delete window.__webdriver_script_func;
+            delete window.__webdriver_script_fn;
+            delete window.__fxdriver_evaluate;
+            delete window.__driver_evaluate;
+            delete window.__webdriver_unwrapped;
+            delete window.__selenium_unwrapped;
+            delete window.__fxdriver_unwrapped;
+            delete window.__driver_unwrapped;
         } catch(e) {}
 
         // 2. Mock chrome runtime & properties
@@ -72,6 +89,22 @@ val STEALTH_JS = """
             Object.defineProperty(navigator, 'plugins', { get: () => [1, 2, 3, 4, 5] });
             Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => 8 });
             Object.defineProperty(navigator, 'deviceMemory', { get: () => 8 });
+        } catch(e) {}
+
+        // 6. User Touch Event & Pointer Simulation on Challenge Elements
+        try {
+            window.dispatchEvent(new Event('touchstart'));
+            window.dispatchEvent(new MouseEvent('mousemove', { bubbles: true, cancelable: true, clientX: 150, clientY: 150 }));
+
+            // Auto-trigger Turnstile widget checkbox click if present
+            setTimeout(() => {
+                try {
+                    const checkbox = document.querySelector('.cf-turnstile, [name="cf-turnstile-response"], iframe[src*="challenges.cloudflare.com"], #turnstile-wrapper input[type="checkbox"]');
+                    if (checkbox) {
+                        checkbox.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+                    }
+                } catch(e) {}
+            }, 500);
         } catch(e) {}
     })();
 """.trimIndent()

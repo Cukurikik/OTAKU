@@ -8,8 +8,57 @@ import android.view.ViewGroup
 import android.webkit.WebSettings
 import android.webkit.WebView
 import com.example.data.NetworkModule
+import java.io.File
 
 object WebViewHelper {
+
+    /**
+     * Pre-creates WebView cache and code cache directory structure to prevent
+     * Chromium simple_file_enumerator / simple_version_upgrade ENOENT errors.
+     */
+    fun initWebViewEnvironment(context: Context) {
+        try {
+            val appCtx = context.applicationContext ?: context
+            val cacheBase = appCtx.cacheDir
+            if (cacheBase != null) {
+                val dirsToEnsure = listOf(
+                    File(cacheBase, "WebView/Default/HTTP Cache/Code Cache/js"),
+                    File(cacheBase, "WebView/Default/HTTP Cache/Code Cache/wasm"),
+                    File(cacheBase, "WebView/Default/HTTP Cache/index-dir"),
+                    File(cacheBase, "WebView/Default/GPUCache"),
+                    File(cacheBase, "WebView/GrShaderCache"),
+                    File(cacheBase, "WebView/ShaderCache")
+                )
+                for (dir in dirsToEnsure) {
+                    if (!dir.exists()) {
+                        dir.mkdirs()
+                    }
+                }
+            }
+
+            // Ensure app_webview data directory exists
+            val dataDir = try {
+                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N) {
+                    appCtx.dataDir
+                } else {
+                    appCtx.filesDir.parentFile
+                }
+            } catch (_: Throwable) {
+                appCtx.filesDir.parentFile
+            }
+
+            if (dataDir != null) {
+                val appWebViewDir = File(dataDir, "app_webview")
+                if (!appWebViewDir.exists()) {
+                    appWebViewDir.mkdirs()
+                }
+                val defaultDir = File(appWebViewDir, "Default")
+                if (!defaultDir.exists()) {
+                    defaultDir.mkdirs()
+                }
+            }
+        } catch (_: Throwable) {}
+    }
 
     /**
      * Safely and cleanly destroys a WebView instance on the Main Thread.

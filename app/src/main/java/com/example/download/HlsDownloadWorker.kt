@@ -56,10 +56,20 @@ class HlsDownloadWorker(
         val profileId = com.example.data.ProfileManager.currentProfileIdValue
 
         try {
+            // Run Storage Janitor task to clean up old staging folders (>24h) and prevent storage leak
+            StoragePathManager.runStorageJanitorTask(context)
+
             setForeground(createForegroundInfo(title, 0, 100, "Menganalisis playlist HLS..."))
 
-            // 1. Parsing M3U8 Playlist (mendukung Master playlist atau Media playlist langsung)
-            val segments = resolveAndParsePlaylist(playlistUrl)
+            // 1. Siapkan Staging Folder untuk Chunk Resiliency & Key Caching
+            val videoSafeHash = playlistUrl.hashCode().toString()
+            val stagingDir = File(context.cacheDir, "tmp_hls_$videoSafeHash")
+            if (!stagingDir.exists()) {
+                stagingDir.mkdirs()
+            }
+
+            // 2. Parsing M3U8 Playlist (mendukung Master playlist atau Media playlist langsung & AES-128 keys)
+            val segments = resolveAndParsePlaylist(playlistUrl, stagingDir)
             if (segments.isEmpty()) {
                 Log.e(TAG, "Tidak ada segmen media yang ditemukan pada playlist: $playlistUrl")
                 return@withContext Result.failure(workDataOf("ERROR" to "No media segments in M3U8"))
@@ -67,13 +77,6 @@ class HlsDownloadWorker(
 
             val totalSegments = segments.size
             Log.i(TAG, "Memulai unduhan HLS resilient: $totalSegments segmen untuk '$title'")
-
-            // 2. Siapkan Staging Folder untuk Chunk Resiliency
-            val videoSafeHash = playlistUrl.hashCode().toString()
-            val stagingDir = File(context.cacheDir, "tmp_hls_$videoSafeHash")
-            if (!stagingDir.exists()) {
-                stagingDir.mkdirs()
-            }
 
             val downloadedFiles = mutableListOf<File>()
 
@@ -182,13 +185,18 @@ class HlsDownloadWorker(
         }
     }
 
-    private suspend fun resolveAndParsePlaylist(url: String): List<String> = withContext(Dispatchers.IO) {
+    private suspend fun resolveAndParsePlaylist(url: String, stagingDir: File? = null): List<String> = withContext(Dispatchers.IO) {
         try {
-            val request = Request.Builder()
-                .url(url)
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36")
-                .build()
-            val response = NetworkModule.okHttpClient.newCall(request).execute()
+            val reqUri = android.net.Uri.parse(url)
+            val headers = com.example.media.PersistentHttpHeaderResolver.resolveHeadersForRequest(
+                requestUri = reqUri,
+                activeStreamUrl = url
+            )
+
+            val requestBuilder = Request.Builder().url(url)
+            headers.forEach { (k, v) -> requestBuilder.header(k, v) }
+
+            val response = NetworkModule.okHttpClient.newCall(requestBuilder.build()).execute()
             val content = response.body?.string() ?: return@withContext emptyList()
 
             val lines = content.lines()
@@ -210,15 +218,23 @@ class HlsDownloadWorker(
                     }
                 }
                 if (bestVariantUrl.isNotBlank()) {
-                    return@withContext resolveAndParsePlaylist(bestVariantUrl)
+                    return@withContext resolveAndParsePlaylist(bestVariantUrl, stagingDir)
                 }
             }
 
-            // Media Playlist: Kumpulkan semua URL segmen .ts
+            // Media Playlist: Ekstrak AES-128 Key dan Kumpulkan semua URL segmen .ts
             val segments = mutableListOf<String>()
             for (line in lines) {
                 val trimmed = line.trim()
-                if (trimmed.isNotBlank() && !trimmed.startsWith("#")) {
+                if (trimmed.startsWith("#EXT-X-KEY") && stagingDir != null) {
+                    // Extract URI="keyUrl"
+                    val keyMatch = Regex("""URI=["']([^"']+)["']""").find(trimmed)
+                    val rawKeyUri = keyMatch?.groupValues?.get(1)
+                    if (!rawKeyUri.isNullOrBlank()) {
+                        val keyUrl = if (rawKeyUri.startsWith("http")) rawKeyUri else baseUrl + rawKeyUri
+                        downloadAndRegisterAesKey(keyUrl, stagingDir)
+                    }
+                } else if (trimmed.isNotBlank() && !trimmed.startsWith("#")) {
                     val segUrl = if (trimmed.startsWith("http")) trimmed else baseUrl + trimmed
                     segments.add(segUrl)
                 }
@@ -230,15 +246,58 @@ class HlsDownloadWorker(
         }
     }
 
+    private suspend fun downloadAndRegisterAesKey(keyUrl: String, stagingDir: File) = withContext(Dispatchers.IO) {
+        try {
+            val keyHash = keyUrl.hashCode().toString()
+            val localKeyFile = File(stagingDir, "key_$keyHash.key")
+            
+            // Check if already cached in memory or file
+            val cachedBytes = com.example.media.DownloadHeaderRegistry.getAes128Key(keyUrl)
+            if (cachedBytes != null && cachedBytes.isNotEmpty()) {
+                if (!localKeyFile.exists()) {
+                    FileOutputStream(localKeyFile).use { it.write(cachedBytes) }
+                }
+                com.example.media.DownloadHeaderRegistry.registerLocalKeyMapping(keyUrl, localKeyFile.absolutePath)
+                return@withContext
+            }
+
+            val reqUri = android.net.Uri.parse(keyUrl)
+            val headers = com.example.media.PersistentHttpHeaderResolver.resolveHeadersForRequest(
+                requestUri = reqUri,
+                activeStreamUrl = keyUrl
+            )
+
+            val requestBuilder = Request.Builder().url(keyUrl)
+            headers.forEach { (k, v) -> requestBuilder.header(k, v) }
+
+            val response = NetworkModule.okHttpClient.newCall(requestBuilder.build()).execute()
+            if (response.isSuccessful) {
+                val keyBytes = response.body?.bytes()
+                if (keyBytes != null && keyBytes.isNotEmpty()) {
+                    FileOutputStream(localKeyFile).use { it.write(keyBytes) }
+                    com.example.media.DownloadHeaderRegistry.registerAes128Key(keyUrl, keyBytes)
+                    com.example.media.DownloadHeaderRegistry.registerLocalKeyMapping(keyUrl, localKeyFile.absolutePath)
+                    Log.d(TAG, "Successfully downloaded & registered AES-128 key for: $keyUrl")
+                }
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Failed to download AES-128 key from $keyUrl: ${e.message}")
+        }
+    }
+
     private suspend fun downloadSegmentAtomic(url: String, targetFile: File): Boolean = withContext(Dispatchers.IO) {
         val tempFile = File(targetFile.parentFile, targetFile.name + ".tmp")
         try {
-            val request = Request.Builder()
-                .url(url)
-                .header("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)")
-                .build()
+            val reqUri = android.net.Uri.parse(url)
+            val headers = com.example.media.PersistentHttpHeaderResolver.resolveHeadersForRequest(
+                requestUri = reqUri,
+                activeStreamUrl = url
+            )
 
-            val response = NetworkModule.okHttpClient.newCall(request).execute()
+            val requestBuilder = Request.Builder().url(url)
+            headers.forEach { (k, v) -> requestBuilder.header(k, v) }
+
+            val response = NetworkModule.okHttpClient.newCall(requestBuilder.build()).execute()
             if (!response.isSuccessful) return@withContext false
 
             val body = response.body ?: return@withContext false

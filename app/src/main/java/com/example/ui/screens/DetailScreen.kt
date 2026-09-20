@@ -25,6 +25,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.example.data.models.Chapter
+import com.example.data.models.ChapterEntry
 import com.example.data.models.ContentItem
 import com.example.data.models.ContentType
 import com.example.ui.components.DetailEpisodeListPane
@@ -407,10 +408,11 @@ fun DetailScreen(
                         }
 
                         if (contentItem.type == ContentType.DRAMA) {
-                            items(chapters) { chapter ->
+                            items(chapters, key = { it.id.ifBlank { it.url } }) { chapter ->
                                 val entry = chapterEntries[chapter.id]
                                 DramaEpisodeCard(
                                     chapter = chapter,
+                                    entry = entry,
                                     isDownloaded = entry?.downloaded == true,
                                     isRead = entry?.read == true,
                                     onDownload = { 
@@ -421,7 +423,7 @@ fun DetailScreen(
                                 )
                             }
                         } else {
-                            items(chapters) { chapter ->
+                            items(chapters, key = { it.id.ifBlank { it.url } }) { chapter ->
                                 val entry = chapterEntries[chapter.id]
                                 val openAction = {
                                     if (contentItem.type == ContentType.COMIC) onReadChapter(chapter.id, chapter.title)
@@ -637,8 +639,131 @@ fun AnimeHeader(item: ContentItem) {
     }
 }
 
+fun resolveSubtitleStatus(title: String, explicitStatus: String): String {
+    if (explicitStatus.isNotBlank()) return explicitStatus
+    val lower = title.lowercase()
+    return when {
+        lower.contains("hardsub") -> "Hardsub"
+        lower.contains("sub indo") || lower.contains("subtitle indonesia") || lower.contains("indonesian sub") -> "Sub Indo"
+        lower.contains("raw") || lower.contains("[raw]") -> "Raw"
+        lower.contains("eng sub") || lower.contains("english sub") || lower.contains("engsub") -> "Eng Sub"
+        else -> "Sub Indo"
+    }
+}
+
+fun resolveSeasonNumber(title: String, explicitSeason: Int?): Int? {
+    if (explicitSeason != null && explicitSeason > 0) return explicitSeason
+    val regex = Regex("(?i)(?:season|s)\\s*(\\d+)")
+    val match = regex.find(title)
+    return match?.groupValues?.get(1)?.toIntOrNull()
+}
+
+@Composable
+fun SubtitleStatusBadge(status: String) {
+    val cleanStatus = status.trim()
+    if (cleanStatus.isBlank()) return
+    
+    val (bgColor, textColor, label) = when (cleanStatus.lowercase()) {
+        "sub indo", "subtitle indonesia", "indonesian sub", "hardsub" -> Triple(
+            Color(0xFF2E7D32), // Emerald green
+            Color.White,
+            if (cleanStatus.lowercase() == "hardsub") "Hardsub" else "Sub Indo"
+        )
+        "raw" -> Triple(
+            Color(0xFFE65100), // Rich amber orange
+            Color.White,
+            "Raw"
+        )
+        "eng sub", "english sub", "engsub" -> Triple(
+            Color(0xFF1565C0), // Deep blue
+            Color.White,
+            "Eng Sub"
+        )
+        else -> Triple(
+            MaterialTheme.colorScheme.secondaryContainer,
+            MaterialTheme.colorScheme.onSecondaryContainer,
+            cleanStatus
+        )
+    }
+
+    Surface(
+        color = bgColor,
+        shape = RoundedCornerShape(4.dp),
+        tonalElevation = 1.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Icon(
+                imageVector = Icons.Default.Subtitles,
+                contentDescription = null,
+                tint = textColor,
+                modifier = Modifier.size(11.dp)
+            )
+            Spacer(modifier = Modifier.width(3.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                fontWeight = FontWeight.Bold,
+                color = textColor
+            )
+        }
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun CastListSection(castList: List<String>) {
+    if (castList.isNotEmpty()) {
+        Column(modifier = Modifier.fillMaxWidth().padding(top = 10.dp)) {
+            Text(
+                text = "Pemeran Utama",
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            Spacer(modifier = Modifier.height(6.dp))
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                castList.forEach { actor ->
+                    Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.7f),
+                        border = androidx.compose.foundation.BorderStroke(0.5.dp, MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = actor,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
 @Composable
 fun DramaHeader(item: ContentItem) {
+    val subtitleStatus = resolveSubtitleStatus(item.title, item.subtitleStatus)
+    val seasonNumber = resolveSeasonNumber(item.title, item.seasonNumber)
+
     Column(modifier = Modifier.fillMaxWidth()) {
         Box(modifier = Modifier.fillMaxWidth().height(260.dp)) {
             AsyncImage(
@@ -650,7 +775,7 @@ fun DramaHeader(item: ContentItem) {
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.8f))))
+                    .background(Brush.verticalGradient(colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.85f))))
             )
             Column(
                 modifier = Modifier
@@ -663,14 +788,35 @@ fun DramaHeader(item: ContentItem) {
                     color = Color.White,
                     fontWeight = FontWeight.Bold
                 )
-                Spacer(modifier = Modifier.height(4.dp))
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(item.source, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primaryContainer)
+                Spacer(modifier = Modifier.height(6.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    SubtitleStatusBadge(subtitleStatus)
+
+                    if (seasonNumber != null) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primaryContainer,
+                            shape = RoundedCornerShape(4.dp)
+                        ) {
+                            Text(
+                                text = "Season $seasonNumber",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                            )
+                        }
+                    }
+
+                    Text(item.source, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primaryContainer)
                     if (item.year.isNotBlank()) {
-                        Text(" • ${item.year}", style = MaterialTheme.typography.labelLarge, color = Color.White)
+                        Text("• ${item.year}", style = MaterialTheme.typography.labelMedium, color = Color.White)
                     }
                     if (item.status.isNotBlank()) {
-                        Text(" • ${item.status}", style = MaterialTheme.typography.labelLarge, color = Color.LightGray)
+                        Text("• ${item.status}", style = MaterialTheme.typography.labelMedium, color = Color.LightGray)
                     }
                 }
             }
@@ -679,9 +825,15 @@ fun DramaHeader(item: ContentItem) {
         Column(modifier = Modifier.padding(16.dp)) {
             if (item.genres.isNotEmpty()) {
                 Text("Genres: ${item.genres.joinToString(", ")}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.secondary)
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
             }
+            
+            CastListSection(castList = item.castList)
+
             if (item.description.isNotBlank()) {
+                Spacer(modifier = Modifier.height(12.dp))
+                Text("Sinopsis", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                Spacer(modifier = Modifier.height(4.dp))
                 Text(item.description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
@@ -691,11 +843,48 @@ fun DramaHeader(item: ContentItem) {
 @Composable
 fun DramaEpisodeCard(
     chapter: Chapter,
+    entry: ChapterEntry? = null,
     isDownloaded: Boolean,
     isRead: Boolean,
     onDownload: () -> Unit,
     onWatch: () -> Unit
 ) {
+    val subtitleStatus by remember(chapter.title, chapter.subtitleStatus) {
+        derivedStateOf { resolveSubtitleStatus(chapter.title, chapter.subtitleStatus) }
+    }
+    val seasonNumber by remember(chapter.title, chapter.seasonNumber) {
+        derivedStateOf { resolveSeasonNumber(chapter.title, chapter.seasonNumber) }
+    }
+    
+    // Formula Persentase Progress Tontonan: State_progress = derivedStateOf { min(1.0, CurrentPosition / TotalDuration) }
+    val progress by remember(chapter.lastWatchedPositionMs, chapter.totalDurationMs, entry?.lastPageRead, isRead) {
+        derivedStateOf {
+            if (chapter.totalDurationMs > 0L) {
+                (chapter.lastWatchedPositionMs.toFloat() / chapter.totalDurationMs.toFloat()).coerceIn(0f, 1f)
+            } else if (entry != null && entry.lastPageRead > 0) {
+                // entry.lastPageRead stores milliseconds position in player
+                val fallbackDuration = 45 * 60 * 1000f // 45 minutes default estimation
+                (entry.lastPageRead.toFloat() / fallbackDuration).coerceIn(0f, 1f)
+            } else if (isRead) {
+                1.0f
+            } else {
+                0.0f
+            }
+        }
+    }
+
+    val displayTitle by remember(chapter.title, seasonNumber) {
+        derivedStateOf {
+            val cleanTitle = chapter.title
+            val sNum = seasonNumber
+            if (sNum != null && !cleanTitle.contains("Season", ignoreCase = true) && !cleanTitle.startsWith("S", ignoreCase = true)) {
+                "Season $sNum - $cleanTitle"
+            } else {
+                cleanTitle
+            }
+        }
+    }
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -706,46 +895,85 @@ fun DramaEpisodeCard(
             )
             .clickable { onWatch() },
         colors = CardDefaults.cardColors(
-            containerColor = if (isRead) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant
+            containerColor = if (isRead || progress >= 0.9f) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surfaceVariant
         ),
         shape = RoundedCornerShape(12.dp)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(12.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
+        Column(modifier = Modifier.fillMaxWidth()) {
+            Row(
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                contentAlignment = Alignment.Center
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.PlayArrow,
-                    contentDescription = "Play",
-                    tint = MaterialTheme.colorScheme.primary
-                )
-            }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = chapter.title,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (isRead) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 2
-                )
-                if (chapter.date.isNotBlank()) {
-                    Text(text = chapter.date, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(
+                            if (isRead || progress >= 0.9f) MaterialTheme.colorScheme.secondary.copy(alpha = 0.15f)
+                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = if (isRead || progress >= 0.9f) Icons.Default.Check else Icons.Default.PlayArrow,
+                        contentDescription = "Play",
+                        tint = if (isRead || progress >= 0.9f) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.primary
+                    )
+                }
+                Spacer(modifier = Modifier.width(14.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = displayTitle,
+                        fontWeight = if (isRead) FontWeight.Normal else FontWeight.SemiBold,
+                        color = if (isRead) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        SubtitleStatusBadge(subtitleStatus)
+
+                        if (chapter.date.isNotBlank()) {
+                            Text(
+                                text = chapter.date,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+
+                        if (progress > 0f) {
+                            val percentText = if (isRead || progress >= 0.9f) "Selesai" else "${(progress * 100).toInt()}%"
+                            Text(
+                                text = "• $percentText",
+                                style = MaterialTheme.typography.labelSmall,
+                                fontWeight = FontWeight.SemiBold,
+                                color = if (isRead || progress >= 0.9f) MaterialTheme.colorScheme.primary else Color(0xFFFFB800)
+                            )
+                        }
+                    }
+                }
+                IconButton(onClick = onDownload) {
+                    Icon(
+                        imageVector = if (isDownloaded) Icons.Default.CheckCircle else Icons.Default.Download,
+                        contentDescription = "Download",
+                        tint = if (isDownloaded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
-            IconButton(onClick = onDownload) {
-                Icon(
-                    imageVector = if (isDownloaded) Icons.Default.CheckCircle else Icons.Default.Download,
-                    contentDescription = "Download",
-                    tint = if (isDownloaded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+
+            // Visual Progress Bar
+            if (progress > 0f) {
+                LinearProgressIndicator(
+                    progress = { progress },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(4.dp),
+                    color = if (isRead || progress >= 0.9f) MaterialTheme.colorScheme.primary else Color(0xFFFFB800), // Emas / Accent
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 )
             }
         }

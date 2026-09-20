@@ -76,7 +76,8 @@ class GenericDramaScraper(
             val d = engine.detail(itemId) ?: return null
             com.example.data.models.ContentItem(
                 id = d.url, title = d.title, source = sourceName, imageUrl = d.imageUrl,
-                description = d.description, genres = d.genres, type = ContentType.DRAMA, sourceId = sourceId
+                description = d.description, genres = d.genres, type = ContentType.DRAMA, sourceId = sourceId,
+                castList = d.castList, subtitleStatus = d.subtitleStatus, seasonNumber = d.seasonNumber
             )
         } catch (e: CancellationException) {
             throw e

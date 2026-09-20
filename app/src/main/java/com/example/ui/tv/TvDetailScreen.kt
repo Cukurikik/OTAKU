@@ -67,7 +67,7 @@ fun TvDetailScreen(
             item {
                 Text("Daftar ${if (isComic) "Chapter" else "Episode"}", style = MaterialTheme.typography.headlineMedium, modifier = Modifier.padding(bottom = 16.dp))
             }
-            items(chapters) { chapter ->
+            items(chapters, key = { it.id.ifBlank { it.url } }) { chapter ->
                 ListItem(
                     selected = false,
                     onClick = {

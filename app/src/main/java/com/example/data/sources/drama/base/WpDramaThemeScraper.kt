@@ -77,21 +77,28 @@ abstract class WpDramaThemeScraper(
             val title = doc.selectFirst("h1.entry-title, .s-title, h1, .movie-content h3.title, .movie-content .title")?.text()
                 ?: doc.selectFirst("meta[property='og:title']")?.attr("content")
                 ?: ""
+            val cleanTitle = title.replace(Regex("(?i)Lokalfilm\\s*-\\s*Movie Details"), "").trim().ifBlank { title }
             val image = doc.selectFirst(".thumb img, .poster img, .movie-thumb img, meta[property='og:image']")?.let {
                 if (it.tagName() == "meta") it.attr("content") else it.absUrl("src")
             } ?: ""
             val description = doc.selectFirst(".entry-content, .desc, .sinopsis, meta[name='description']")?.let {
                 if (it.tagName() == "meta") it.attr("content") else it.text()
             } ?: ""
+            val genres = doc.select(".genres a, .gmr-movie-genre a, .cat a, .tags a").map { it.text().trim() }.filter { it.isNotBlank() }.distinct()
+            val metadata = extractDramaMetadata(doc, cleanTitle)
             
             ContentItem(
                 id = itemId,
-                title = title.replace(Regex("(?i)Lokalfilm\\s*-\\s*Movie Details"), "").trim().ifBlank { title },
+                title = cleanTitle,
                 imageUrl = image,
                 sourceId = sourceId,
                 source = sourceName,
                 type = ContentType.DRAMA,
-                description = description
+                description = description,
+                genres = genres,
+                castList = metadata.castList,
+                subtitleStatus = metadata.subtitleStatus,
+                seasonNumber = metadata.seasonNumber
             )
         } catch (e: Exception) {
             null

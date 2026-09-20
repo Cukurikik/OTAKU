@@ -1,5 +1,6 @@
 package com.example.data.sources.core
 
+import androidx.compose.runtime.Immutable
 import java.time.Instant
 
 sealed class SourceResult<out T> {
@@ -7,6 +8,7 @@ sealed class SourceResult<out T> {
     data class Error(val message: String, val exception: Throwable? = null) : SourceResult<Nothing>()
 }
 
+@Immutable
 data class ComicDetail(
     val id: String,
     val url: String,
@@ -27,6 +29,7 @@ data class ComicDetail(
     val sourceId: String
 )
 
+@Immutable
 data class Chapter(
     val id: String,
     val url: String,
@@ -40,6 +43,7 @@ data class Chapter(
     val sourceId: String
 )
 
+@Immutable
 data class PageImage(
     val index: Int,
     val url: String,
@@ -52,6 +56,7 @@ data class PageImage(
 
 enum class ImageValidation { VALID, HTML, CLOUDFLARE, FORBIDDEN, EMPTY, CORRUPTED }
 
+@Immutable
 data class SourceHealth(
     val sourceId: String,
     val reachable: Boolean,
@@ -67,17 +72,35 @@ data class SourceHealth(
     val error: String?
 )
 
+@Immutable
 data class ComicItem(val id: String, val url: String, val title: String, val coverUrl: String?)
+
+@Immutable
 data class HomeSection(val title: String, val items: List<ComicItem>)
+
+@Immutable
 data class HomePage(val sections: List<HomeSection>)
+
+@Immutable
 data class SearchPage(val items: List<ComicItem>, val hasNextPage: Boolean)
+
+@Immutable
 data class BrowsePage(val items: List<ComicItem>, val hasNextPage: Boolean)
 
 // Anime Models
+@Immutable
 data class AnimeHome(val sections: List<AnimeHomeSection>)
+
+@Immutable
 data class AnimeHomeSection(val title: String, val items: List<AnimeItem>)
+
+@Immutable
 data class AnimeItem(val id: String, val url: String, val title: String, val coverUrl: String?)
+
+@Immutable
 data class AnimeSearchPage(val items: List<AnimeItem>, val hasNextPage: Boolean)
+
+@Immutable
 data class AnimeDetail(
     val id: String,
     val url: String,
@@ -89,6 +112,8 @@ data class AnimeDetail(
     val episodes: List<Episode>,
     val sourceId: String
 )
+
+@Immutable
 data class Episode(
     val id: String,
     val url: String,
@@ -97,6 +122,8 @@ data class Episode(
     val date: Instant?,
     val sourceId: String
 )
+
+@Immutable
 data class VideoStream(
     val url: String,
     val quality: String,
@@ -105,8 +132,13 @@ data class VideoStream(
 )
 
 // Drama Models
+@Immutable
 data class DramaItem(val id: String, val url: String, val title: String, val coverUrl: String?)
+
+@Immutable
 data class DramaSearchPage(val items: List<DramaItem>, val hasNextPage: Boolean)
+
+@Immutable
 data class DramaDetail(
     val id: String,
     val url: String,
@@ -118,6 +150,8 @@ data class DramaDetail(
     val episodes: List<DramaEpisode>,
     val sourceId: String
 )
+
+@Immutable
 data class DramaEpisode(
     val id: String,
     val url: String,

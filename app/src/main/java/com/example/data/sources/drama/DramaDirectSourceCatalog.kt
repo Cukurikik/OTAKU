@@ -9,9 +9,10 @@ object DramaDirectSourceCatalog {
     val sources: List<ScraperSourceConfig> = listOf(
         gmrTheme("licil", "Licil", "https://digitalepiphanies.org"),
         gmrTheme("licil-barat", "Licil Barat", "https://digitalepiphanies.org/category/western-series"),
-        gmrTheme("ip-178", "Streaming 1", "http://178.128.91.191"),
+        gmrTheme("drakorid", "DrakorID", "https://drakorid.net"),
         gmrTheme("jucelebrity", "JuCelebrity", "https://jucelebrity.com"),
-        gmrTheme("ip-134", "Streaming 2", "http://134.209.105.11"),
+        gmrTheme("nodrakor", "NoDrakor", "https://nodrakor.icu"),
+        gmrTheme("dramaqu", "DramaQu", "https://dramaqu.is"),
         lokalFilmTheme("lokalfilm", "LokalFilm", "https://lokalfilm.id"),
         genericTheme("viki", "Viki", "https://www.viki.com")
     )

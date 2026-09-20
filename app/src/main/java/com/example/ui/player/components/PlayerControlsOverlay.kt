@@ -86,6 +86,7 @@ fun PlayerControlsOverlay(
     var showAspectRatioMenu by remember { mutableStateOf(false) }
     var showSubtitleTrackMenu by remember { mutableStateOf(false) }
     var showServerMenu by remember { mutableStateOf(false) }
+    var showServerBottomSheet by remember { mutableStateOf(false) }
     var showQualityMenu by remember { mutableStateOf(false) }
 
     var feedbackText by remember { mutableStateOf("") }
@@ -249,6 +250,25 @@ fun PlayerControlsOverlay(
                         imageVector = Icons.Default.AutoAwesome,
                         contentDescription = "GLSL GPU Shader Enhancement",
                         tint = Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                // Multi-Server Mirror Switcher Button (Proposal 6)
+                IconButton(
+                    onClick = { showServerBottomSheet = true },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(
+                            if (servers.size > 1) MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                            else Color.Black.copy(alpha = 0.5f),
+                            shape = CircleShape
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Dns,
+                        contentDescription = "Pilih Server Mirror Video",
+                        tint = if (servers.size > 1) MaterialTheme.colorScheme.primary else Color.White,
                         modifier = Modifier.size(18.dp)
                     )
                 }
@@ -454,31 +474,17 @@ fun PlayerControlsOverlay(
                     }
                 }
 
-                // Server Selector Dropdown
+                // Server Selector Button
                 if (servers.size > 1) {
-                    Box {
-                        Button(
-                            onClick = { showServerMenu = true },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.5f)),
-                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            modifier = Modifier.height(36.dp)
-                        ) {
-                            Text(currentServerName, color = Color.White, style = MaterialTheme.typography.labelMedium)
-                        }
-                        DropdownMenu(
-                            expanded = showServerMenu,
-                            onDismissRequest = { showServerMenu = false }
-                        ) {
-                            servers.forEach { server ->
-                                DropdownMenuItem(
-                                    text = { Text(server.name) },
-                                    onClick = {
-                                        onServerSelected(server)
-                                        showServerMenu = false
-                                    }
-                                )
-                            }
-                        }
+                    Button(
+                        onClick = { showServerBottomSheet = true },
+                        colors = ButtonDefaults.buttonColors(containerColor = Color.Black.copy(alpha = 0.5f)),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                        modifier = Modifier.height(36.dp)
+                    ) {
+                        Icon(Icons.Default.Dns, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(currentServerName, color = Color.White, style = MaterialTheme.typography.labelMedium)
                     }
                 }
 
@@ -639,6 +645,18 @@ fun PlayerControlsOverlay(
                 }
             }
         }
+
+        // Multi-Server Mirror Switcher Bottom Sheet (Proposal 6)
+        ServerSwitcherBottomSheet(
+            visible = showServerBottomSheet && !isInPip,
+            servers = servers,
+            currentServerName = currentServerName,
+            onServerSelected = { server ->
+                onServerSelected(server)
+                triggerFeedback("Beralih ke server: ${server.name}")
+            },
+            onDismissRequest = { showServerBottomSheet = false }
+        )
 
         // Feedback Text Overlay
         AnimatedVisibility(

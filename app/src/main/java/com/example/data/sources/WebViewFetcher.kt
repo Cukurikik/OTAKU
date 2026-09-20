@@ -434,9 +434,25 @@ class WebViewFetcher(private val context: Context) {
                     }
 
                     val isFinished = AtomicBoolean(false)
+                    val interceptedSubtitles = mutableListOf<Subtitle>()
+
+                    val handleSubtitleDiscovered: (Subtitle) -> Unit = { sub ->
+                        synchronized(interceptedSubtitles) {
+                            if (interceptedSubtitles.none { it.url == sub.url }) {
+                                interceptedSubtitles.add(sub)
+                            }
+                        }
+                    }
+
                     fun finishWithResult(result: InterceptedStreamResult?) {
                         if (isFinished.compareAndSet(false, true) && continuation.isActive) {
-                            continuation.resume(result)
+                            val finalResult = if (result != null && result.subtitles.isEmpty()) {
+                                val subs = synchronized(interceptedSubtitles) { interceptedSubtitles.toList() }
+                                if (subs.isNotEmpty()) result.copy(subtitles = subs) else result
+                            } else {
+                                result
+                            }
+                            continuation.resume(finalResult)
                         }
                     }
 
@@ -502,6 +518,9 @@ class WebViewFetcher(private val context: Context) {
                     val jsBridge = object {
                         @android.webkit.JavascriptInterface
                         fun processApiResponse(reqUrl: String, body: String) {
+                            val subs = com.example.data.sources.anime.extractors.ApiResponseParser.extractSubtitleTracks(reqUrl, body)
+                            subs.forEach { handleSubtitleDiscovered(it) }
+
                             if (isFinished.get()) return
                             val streams = com.example.data.sources.anime.extractors.ApiResponseParser.extractStreamUrls(reqUrl, body)
                             if (streams.isNotEmpty()) {
@@ -518,9 +537,19 @@ class WebViewFetcher(private val context: Context) {
                                         isM3U8 = discovered.contains(".m3u8", ignoreCase = true),
                                         headers = streamHeaders,
                                         cookies = cookies,
-                                        userAgent = effectiveUa
+                                        userAgent = effectiveUa,
+                                        subtitles = synchronized(interceptedSubtitles) { interceptedSubtitles.toList() }
                                     )
                                 )
+                            }
+                        }
+
+                        @android.webkit.JavascriptInterface
+                        fun processSubtitle(subUrl: String, language: String, format: String) {
+                            if (subUrl.isNotBlank() && (subUrl.startsWith("http://") || subUrl.startsWith("https://"))) {
+                                val fmt = format.ifBlank { if (subUrl.contains(".srt", ignoreCase = true)) "srt" else "vtt" }
+                                val lang = language.ifBlank { "Indonesian" }
+                                handleSubtitleDiscovered(Subtitle(language = lang, url = subUrl, format = fmt))
                             }
                         }
                     }
@@ -536,6 +565,17 @@ class WebViewFetcher(private val context: Context) {
                                 var serverBtn = document.querySelector('#server-list li, .server-item, .mirror-item, .server-btn, option[data-server], select[name="server"] option, .east_player_option, .server, .mobius, .mirrors li');
                                 if (serverBtn && typeof serverBtn.click === 'function') serverBtn.click();
                                 
+                                var tracks = document.querySelectorAll('video track, track');
+                                tracks.forEach(function(tr) {
+                                    var src = tr.src || tr.getAttribute('src');
+                                    var label = tr.label || tr.getAttribute('label') || tr.getAttribute('srclang') || 'Indonesian';
+                                    if (src && src.startsWith('http')) {
+                                        if (window.AndroidBridge && typeof window.AndroidBridge.processSubtitle === 'function') {
+                                            window.AndroidBridge.processSubtitle(src, label, src.indexOf('.srt') > -1 ? 'srt' : 'vtt');
+                                        }
+                                    }
+                                });
+
                                 var v = document.querySelector('video');
                                 if (v) {
                                     if (v.src && v.src.startsWith('http')) return v.src;
@@ -548,7 +588,19 @@ class WebViewFetcher(private val context: Context) {
                                     var jw = window.jwplayer();
                                     if (jw && jw.getPlaylist) {
                                         var pl = jw.getPlaylist();
-                                        if (pl && pl[0] && pl[0].file) return pl[0].file;
+                                        if (pl && pl[0]) {
+                                            if (pl[0].tracks) {
+                                                pl[0].tracks.forEach(function(t) {
+                                                    if (t.file && t.file.startsWith('http')) {
+                                                        var lbl = t.label || t.name || 'Indonesian';
+                                                        if (window.AndroidBridge && typeof window.AndroidBridge.processSubtitle === 'function') {
+                                                            window.AndroidBridge.processSubtitle(t.file, lbl, t.file.indexOf('.srt') > -1 ? 'srt' : 'vtt');
+                                                        }
+                                                    }
+                                                });
+                                            }
+                                            if (pl[0].file) return pl[0].file;
+                                        }
                                     }
                                 }
                                 
@@ -585,6 +637,27 @@ class WebViewFetcher(private val context: Context) {
                                 lowerUrl.contains("histats") ||
                                 lowerUrl.contains("disqus.com")) {
                                 return WebResourceResponse("text/plain", "UTF-8", null)
+                            }
+
+                            // Check if network request is a subtitle track
+                            val isSubtitle = (lowerUrl.contains(".vtt") ||
+                                    lowerUrl.contains(".srt") ||
+                                    lowerUrl.contains("sub.vtt") ||
+                                    lowerUrl.contains("/subtitles/") ||
+                                    lowerUrl.contains("/caption/")) &&
+                                    !lowerUrl.endsWith(".js") &&
+                                    !lowerUrl.endsWith(".css") &&
+                                    !lowerUrl.endsWith(".png") &&
+                                    !lowerUrl.endsWith(".jpg")
+
+                            if (isSubtitle) {
+                                val lang = when {
+                                    lowerUrl.contains("indonesia") || lowerUrl.contains("indo") || lowerUrl.contains("/id.") -> "Indonesian"
+                                    lowerUrl.contains("english") || lowerUrl.contains("eng") || lowerUrl.contains("/en.") -> "English"
+                                    else -> "Indonesian"
+                                }
+                                val fmt = if (lowerUrl.contains(".srt")) "srt" else "vtt"
+                                handleSubtitleDiscovered(Subtitle(language = lang, url = reqUrl, format = fmt))
                             }
 
                             // Check for video streams (.m3u8, .mpd, .mp4, /hls/, etc.)

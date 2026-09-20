@@ -10,6 +10,7 @@ import com.example.data.sources.SourceStatusBus
 import com.example.data.sources.VideoSource
 import com.example.data.sources.VideoStreamInfo
 import com.example.data.sources.WebViewFetcher
+import androidx.compose.runtime.Immutable
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -253,6 +254,15 @@ abstract class BaseDramaSource(protected val context: Context) : VideoSource, Co
             }
 
             val doc = fetchDocument(episodeUrl)
+            val docSubtitles = doc.select("track[src], track[data-src]").mapNotNull { track ->
+                val src = track.absUrl("src").ifEmpty { track.absUrl("data-src") }
+                if (src.isNotBlank()) {
+                    val lang = track.attr("srclang").ifBlank { track.attr("label") }.ifBlank { "Indonesian" }
+                    val format = if (src.contains(".srt", ignoreCase = true)) "srt" else "vtt"
+                    com.example.data.sources.Subtitle(language = lang, url = src, format = format)
+                } else null
+            }
+
             val iframes = doc.select("iframe, .video-embed iframe, .gmr-embed-responsive iframe, .player iframe, #player iframe, #embed_holder iframe")
             val embedUrls = iframes.map { it.absUrl("src").ifEmpty { it.absUrl("data-src") } }
                 .filter { it.isNotEmpty() }
@@ -261,7 +271,10 @@ abstract class BaseDramaSource(protected val context: Context) : VideoSource, Co
             for (src in embedUrls) {
                 val iframeInfo = videoUrlInterceptor.interceptVideo(src, episodeUrl, timeoutMs = 12000L, headers = customHeaders)
                 if (iframeInfo != null && iframeInfo.qualities.isNotEmpty()) {
-                    return@runCatching iframeInfo
+                    val mergedSubs = if (iframeInfo.subtitles.isEmpty() && docSubtitles.isNotEmpty()) {
+                        iframeInfo.copy(subtitles = docSubtitles)
+                    } else iframeInfo
+                    return@runCatching mergedSubs
                 }
                 val streamUrl = videoUrlInterceptor.interceptStreamUrl(src, timeoutMs = 10000L, headers = customHeaders)
                 if (!streamUrl.isNullOrBlank()) {
@@ -269,6 +282,7 @@ abstract class BaseDramaSource(protected val context: Context) : VideoSource, Co
                         episodeId = episodeUrl,
                         embedUrl = streamUrl,
                         qualities = listOf(com.example.data.sources.VideoQuality("Auto", streamUrl, isM3U8 = streamUrl.contains(".m3u8"), headers = customHeaders)),
+                        subtitles = docSubtitles,
                         headers = customHeaders
                     )
                 }
@@ -282,13 +296,14 @@ abstract class BaseDramaSource(protected val context: Context) : VideoSource, Co
                     episodeId = episodeUrl,
                     embedUrl = directSrc,
                     qualities = listOf(com.example.data.sources.VideoQuality("Auto", directSrc, isM3U8 = directSrc.contains(".m3u8"), headers = customHeaders)),
+                    subtitles = docSubtitles,
                     headers = customHeaders
                 )
             }
 
             // Fallback
             if (embedUrls.isNotEmpty()) {
-                VideoStreamInfo(episodeId = episodeUrl, embedUrl = embedUrls.first(), headers = customHeaders)
+                VideoStreamInfo(episodeId = episodeUrl, embedUrl = embedUrls.first(), subtitles = docSubtitles, headers = customHeaders)
             } else {
                 throw java.io.IOException("Tidak ditemukan tautan video/embed stream aktif pada sumber $sourceName.")
             }
@@ -307,14 +322,165 @@ abstract class BaseDramaSource(protected val context: Context) : VideoSource, Co
             throw e
         }
     }
+
+    /**
+     * Extracts standardized Drama metadata (Cast list, Subtitle status, Season number) from DOM.
+     */
+    open fun extractDramaMetadata(document: org.jsoup.nodes.Document, titleFallback: String = ""): DramaMetadata {
+        val castList = extractCastList(document)
+        val subtitleStatus = extractSubtitleStatus(document, titleFallback)
+        val seasonNumber = parseSeasonNumber(titleFallback.ifBlank { document.title() }, document)
+        return DramaMetadata(
+            castList = castList,
+            subtitleStatus = subtitleStatus,
+            seasonNumber = seasonNumber
+        )
+    }
+
+    /**
+     * Standardized DOM selector parsing for Drama Cast / Actor list.
+     * Supports WordPress drama themes, GMR movie data, schema.org microdata, and OpenGraph metadata.
+     */
+    open fun extractCastList(document: org.jsoup.nodes.Document): List<String> {
+        val castElements = document.select(
+            ".cast a, .casts a, .cast-item a, .cast-item, .gmr-moviedata a, [itemprop='actor'], [itemprop='actors'] a, [itemprop='actors'], " +
+            ".starring a, .starring, .actors a, .actors, .actor a, .actor, .s-actors a, .info-cast a, .cast-list li, .cast-list a, " +
+            ".director-cast a, .f-cast a, .entry-content .cast, .entry-content .casts, .content-cast a, .item-cast a, .gmr-cast a"
+        )
+        
+        val casts = mutableListOf<String>()
+        for (el in castElements) {
+            val text = el.text().trim()
+            if (text.isNotBlank() && text.length in 2..50) {
+                val clean = text.replace(Regex("(?i)^(Cast|Casts|Pemeran|Bintang|Actors|Actor|Starring|Stars|Artis|Sutradara|Director)\\s*:\\s*"), "").trim()
+                if (clean.isNotBlank() && !clean.contains(":") && !clean.equals("cast", ignoreCase = true) && !clean.equals("actors", ignoreCase = true)) {
+                    val parts = if (clean.contains(",")) clean.split(",") else listOf(clean)
+                    for (p in parts) {
+                        val trimmed = p.trim()
+                        if (trimmed.length in 2..40 && !trimmed.matches(Regex("^[0-9]+$"))) {
+                            casts.add(trimmed)
+                        }
+                    }
+                }
+            }
+        }
+
+        if (casts.isEmpty()) {
+            val metaCasts = document.select("meta[property='video:actor'], meta[name='actor']")
+            for (meta in metaCasts) {
+                val content = meta.attr("content").trim()
+                if (content.isNotBlank() && !content.equals("video.movie", ignoreCase = true) && !content.equals("video.tv_show", ignoreCase = true)) {
+                    casts.add(content)
+                }
+            }
+        }
+
+        if (casts.isEmpty()) {
+            val castRows = document.select("tr:has(th:matches((?i)cast|pemeran|bintang|actor)), tr:has(td:matches((?i)cast|pemeran|bintang|actor)), .info-item:matches((?i)cast|pemeran|bintang|actor), p:matches((?i)cast|pemeran|bintang|actor)")
+            for (row in castRows) {
+                val links = row.select("a")
+                if (links.isNotEmpty()) {
+                    casts.addAll(links.map { it.text().trim() }.filter { it.length in 2..40 })
+                } else {
+                    val textAfterColon = row.text().substringAfter(":", "").trim()
+                    if (textAfterColon.isNotBlank()) {
+                        casts.addAll(textAfterColon.split(",").map { it.trim() }.filter { it.length in 2..40 })
+                    }
+                }
+            }
+        }
+
+        return casts.distinct().take(15)
+    }
+
+    /**
+     * Standardized subtitle status extractor from DOM badges, labels, and title strings.
+     */
+    open fun extractSubtitleStatus(document: org.jsoup.nodes.Document, titleFallback: String = ""): String {
+        val subBadges = document.select(
+            ".sub-status, [class*='sub-status'], .sub, .quality, .status-sub, .label-sub, .badge-sub, .gmr-sub, " +
+            ".badge-quality, .mep_badge, .gmr-quality-item, .post-status, span.sub, .episode-sub, .ep-sub, span.quality, .sub-title"
+        )
+        for (badge in subBadges) {
+            val text = badge.text().trim()
+            val parsed = parseSubtitleStatusFromText(text)
+            if (parsed.isNotBlank()) {
+                return parsed
+            }
+        }
+
+        val fullText = "${document.title()} $titleFallback"
+        return parseSubtitleStatusFromText(fullText).ifBlank { "Sub Indo" }
+    }
+
+    /**
+     * Standardized helper to parse subtitle status keyword from raw text.
+     */
+    open fun parseSubtitleStatusFromText(text: String): String {
+        val lower = text.lowercase()
+        return when {
+            lower.contains("hardsub") -> "Hardsub"
+            lower.contains("softsub") -> "Softsub"
+            lower.contains("raw") || lower.contains("[raw]") -> "Raw"
+            lower.contains("eng sub") || lower.contains("english sub") || lower.contains("engsub") -> "Eng Sub"
+            lower.contains("sub indo") || lower.contains("subtitle indonesia") || lower.contains("sub ind") || lower.contains("indonesian") -> "Sub Indo"
+            else -> ""
+        }
+    }
+
+    /**
+     * Standardized season number parser from DOM metadata and title strings.
+     */
+    open fun parseSeasonNumber(title: String, document: org.jsoup.nodes.Document? = null): Int? {
+        if (document != null) {
+            val metaSeason = document.selectFirst("meta[name='season'], meta[property='video:season']")?.attr("content")?.filter { it.isDigit() }?.toIntOrNull()
+            if (metaSeason != null) return metaSeason
+
+            val seasonTag = document.selectFirst(".season, .season-title, .s-title, [data-season], .gmr-season, .hal-season")
+            val seasonAttr = seasonTag?.attr("data-season")?.toIntOrNull()
+            if (seasonAttr != null) return seasonAttr
+
+            val tagText = seasonTag?.text()?.trim() ?: ""
+            val parsedFromTag = extractSeasonFromRegex(tagText)
+            if (parsedFromTag != null) return parsedFromTag
+        }
+
+        return extractSeasonFromRegex(title)
+    }
+
+    private fun extractSeasonFromRegex(text: String): Int? {
+        val patterns = listOf(
+            Regex("""(?i)Season\s*0*(\d+)"""),
+            Regex("""(?i)\bS0*(\d+)\b"""),
+            Regex("""(?i)Season-(\d+)"""),
+            Regex("""(?i)S-(\d+)""")
+        )
+        for (pattern in patterns) {
+            val match = pattern.find(text)
+            if (match != null) {
+                val num = match.groupValues[1].toIntOrNull()
+                if (num != null && num in 1..99) return num
+            }
+        }
+        return null
+    }
 }
 
+@Immutable
+data class DramaMetadata(
+    val castList: List<String> = emptyList(),
+    val subtitleStatus: String = "Sub Indo",
+    val seasonNumber: Int? = null
+)
+
+@Immutable
 data class DramaSeason(
     val seasonNumber: Int,
     val title: String = "Season $seasonNumber",
     val episodes: List<DramaEpisode>
 )
 
+@Immutable
 data class DramaEpisode(
     val episodeNumber: Int,
     val url: String,

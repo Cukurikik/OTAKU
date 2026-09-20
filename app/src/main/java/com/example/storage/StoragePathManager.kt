@@ -217,4 +217,70 @@ object StoragePathManager {
         settings.downloadStorageUri = ""
         applyNoMediaToAll(context)
     }
+
+    /**
+     * Storage Janitor Cleanup Task:
+     * Scans staging directories (tmp_hls_*, staging, orphaned .tmp/.merging files)
+     * and purges items where (T_current - T_lastModified) > 24 hours (86,400s / 86,400,000ms).
+     * Prevents storage leak while retaining active downloads (< 24h) for resumption.
+     *
+     * Formulation:
+     * StorageCleanupCondition = Purge Directory if (T_current - T_created > 86400s && IsStaging(folder))
+     *                           Retain Directory if (T_current - T_created <= 86400s)
+     */
+    fun runStorageJanitorTask(context: Context, maxAgeMs: Long = 24 * 60 * 60 * 1000L): Int {
+        var purgedCount = 0
+        val currentTime = System.currentTimeMillis()
+
+        // 1. Scan context.cacheDir for tmp_hls_* and staging directories
+        val cacheDir = context.cacheDir
+        if (cacheDir != null && cacheDir.exists() && cacheDir.isDirectory) {
+            cacheDir.listFiles { file ->
+                file.isDirectory && (file.name.startsWith("tmp_hls_") || file.name.startsWith("staging"))
+            }?.forEach { folder ->
+                if (currentTime - folder.lastModified() > maxAgeMs) {
+                    val deleted = folder.deleteRecursively()
+                    if (deleted) {
+                        purgedCount++
+                        Log.d(TAG, "Storage Janitor purged stale staging folder in cacheDir: ${folder.name}")
+                    }
+                }
+            }
+        }
+
+        // 2. Scan filesDir / staging folder
+        val stagingDir = File(context.filesDir, "staging")
+        if (stagingDir.exists() && stagingDir.isDirectory) {
+            stagingDir.listFiles { file ->
+                file.isDirectory && file.name.startsWith("tmp_hls_")
+            }?.forEach { folder ->
+                if (currentTime - folder.lastModified() > maxAgeMs) {
+                    val deleted = folder.deleteRecursively()
+                    if (deleted) {
+                        purgedCount++
+                        Log.d(TAG, "Storage Janitor purged stale staging folder in filesDir: ${folder.name}")
+                    }
+                }
+            }
+        }
+
+        // 3. Scan downloadsDir for stale .tmp and .merging files
+        val baseDir = context.getExternalFilesDir(null) ?: context.filesDir
+        val downloadsDir = File(baseDir, "downloads")
+        if (downloadsDir.exists() && downloadsDir.isDirectory) {
+            downloadsDir.walkTopDown().filter { file ->
+                file.isFile && (file.name.endsWith(".tmp") || file.name.endsWith(".merging"))
+            }.forEach { tempFile ->
+                if (currentTime - tempFile.lastModified() > maxAgeMs) {
+                    val deleted = tempFile.delete()
+                    if (deleted) {
+                        purgedCount++
+                        Log.d(TAG, "Storage Janitor purged stale temp file in downloadsDir: ${tempFile.name}")
+                    }
+                }
+            }
+        }
+
+        return purgedCount
+    }
 }

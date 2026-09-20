@@ -60,7 +60,39 @@ class AnimeDramaScraperEngine(
             ?.takeIf { it.isNotEmpty() }
             ?: doc.select("a[href*='/genre/'], a[href*='genres']").map { e -> e.text().trim() }.filter { it.isNotBlank() && it.length < 25 }
 
-        return ScrapedDetail(url, url, title, image, description, genres)
+        // Extract Cast List
+        val castList = doc.select(
+            ".cast a, .casts a, .cast-item a, .gmr-moviedata a, [itemprop='actor'], [itemprop='actors'] a, " +
+            ".starring a, .actors a, .actor a, .s-actors a, .info-cast a, .cast-list li, .director-cast a, .f-cast a"
+        ).map { it.text().trim() }.filter {
+            it.isNotBlank() && it.length in 2..40 && !it.contains(":") && !it.equals("cast", ignoreCase = true)
+        }.distinct().take(15)
+
+        // Extract Subtitle Status
+        val subTag = doc.selectFirst(".sub-status, [class*='sub-status'], .sub, .quality, .status-sub, .badge-sub, .gmr-sub, .episode-sub")?.text()?.trim() ?: ""
+        val combinedText = "${doc.title()} $title $subTag"
+        val subtitleStatus = when {
+            combinedText.contains("Hardsub", ignoreCase = true) -> "Hardsub"
+            combinedText.contains("Softsub", ignoreCase = true) -> "Softsub"
+            combinedText.contains("Raw", ignoreCase = true) || combinedText.contains("[RAW]") -> "Raw"
+            combinedText.contains("Eng Sub", ignoreCase = true) || combinedText.contains("English Sub", ignoreCase = true) || combinedText.contains("EngSub", ignoreCase = true) -> "Eng Sub"
+            else -> "Sub Indo"
+        }
+
+        // Extract Season Number
+        val seasonNumber = Regex("""(?i)(?:Season|S)\s*0*(\d+)""").find("${doc.title()} $title")?.groupValues?.get(1)?.toIntOrNull()
+
+        return ScrapedDetail(
+            id = url,
+            url = url,
+            title = title,
+            imageUrl = image,
+            description = description,
+            genres = genres,
+            castList = castList,
+            subtitleStatus = subtitleStatus,
+            seasonNumber = seasonNumber
+        )
     }
 
     suspend fun episodes(url: String): List<ScrapedEpisode> {

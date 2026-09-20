@@ -92,4 +92,35 @@ class VideoUrlInterceptorTest {
         assertNotNull(discoveredStream)
         assertEquals("blob:https://player.example.com/1234-5678", discoveredStream)
     }
+
+    @Test
+    fun testOnStreamFound_withSubtitleAndResolution_shouldMatchSignature() {
+        var capturedUrl: String? = null
+        var capturedResolution: String? = null
+        val mockInterceptor = VideoUrlInterceptor(
+            onStreamFound = { videoUrl: String, subtitle: com.example.data.sources.Subtitle?, resolution: String ->
+                capturedUrl = videoUrl
+                capturedResolution = resolution
+                assertNotNull(videoUrl)
+                assertNotNull(resolution)
+            }
+        )
+        mockInterceptor.processUrl("https://example.com/stream.m3u8")
+        assertNotNull(capturedUrl)
+        assertEquals("https://example.com/stream.m3u8", capturedUrl)
+        assertNotNull(capturedResolution)
+    }
+
+    @Test
+    fun testWebAppInterface_withAlignedSignature_capturesStreamAndResolution() {
+        var capturedUrl: String? = null
+        var capturedResolution: String? = null
+        val bridge = WebAppInterface { videoUrl, _, resolution ->
+            capturedUrl = videoUrl
+            capturedResolution = resolution
+        }
+        bridge.processStreamUrl("https://example.com/stream_1080p.m3u8")
+        assertEquals("https://example.com/stream_1080p.m3u8", capturedUrl)
+        assertEquals("1080p", capturedResolution)
+    }
 }
