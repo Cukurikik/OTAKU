@@ -123,87 +123,40 @@ abstract class BaseDramaSource(protected val context: Context) : VideoSource, Co
 
 
     protected val videoUrlInterceptor by lazy { com.example.network.interceptor.VideoUrlInterceptor(context) }
+    protected val multiServerDramaResolver by lazy { com.example.data.sources.drama.MultiServerDramaResolver() }
 
     /**
-     * Parses multi-season structure and episode list from drama details page.
-     * Supports season tabs, dropdowns, season containers, and flat episode lists.
+     * Parses multi-season structure and episode list from drama details page using [DramaSeasonResolver].
+     * Supports season tabs, dropdowns, season containers, range unrolling, and flat episode lists.
      */
-    open suspend fun fetchSeasonsAndEpisodes(dramaUrl: String): List<DramaSeason> {
+    open suspend fun fetchDramaSeries(dramaUrl: String): com.example.data.sources.drama.DramaSeries {
         val doc = fetchDocument(dramaUrl)
-        val seasons = mutableListOf<DramaSeason>()
+        return com.example.data.sources.drama.DramaSeasonResolver.parseSeasons(doc)
+    }
 
-        // 1. Check for season tabs/containers (.tab-pane, .season-list, [data-season], etc.)
-        val seasonContainers = doc.select(".tab-pane[id*='season'], .seasons-holder .season, .season-tab-content, .season-list .season-item, .hal-season")
-        if (seasonContainers.isNotEmpty()) {
-            seasonContainers.forEachIndexed { index, container ->
-                val sNum = container.attr("data-season").toIntOrNull()
-                    ?: container.id().filter { it.isDigit() }.toIntOrNull()
-                    ?: (index + 1)
-                val sTitle = container.selectFirst("h2, h3, .season-title")?.text()?.trim() ?: "Season $sNum"
-                val epElements = container.select(".episodelist li, .eps-list li, .episode-list li, .ep-list a, .gmr-listseries a, .hal-episodes li a, a")
-                val episodes = epElements.mapNotNull { el ->
-                    val a = if (el.tagName() == "a") el else el.selectFirst("a") ?: return@mapNotNull null
-                    val href = a.absUrl("href").ifBlank { return@mapNotNull null }
-                    val rawNum = el.selectFirst(".num, .ep-num, span:first-child")?.text()?.filter { it.isDigit() }
-                    val epNum = rawNum?.toIntOrNull() ?: href.filter { it.isDigit() }.takeLast(3).toIntOrNull() ?: 1
-                    val epTitle = el.selectFirst(".num, .ep-num, span:first-child")?.text() ?: a.text()
+    open suspend fun fetchSeasonsAndEpisodes(dramaUrl: String): List<DramaSeason> {
+        val series = fetchDramaSeries(dramaUrl)
+        return series.seasons.map { s ->
+            DramaSeason(
+                seasonNumber = s.seasonNumber,
+                title = s.seasonName,
+                episodes = s.episodes.map { ep ->
                     DramaEpisode(
-                        episodeNumber = epNum,
-                        url = href,
-                        title = epTitle.ifBlank { "Episode $epNum" }
+                        episodeNumber = ep.episodeNumberInSeason,
+                        url = ep.streamUrl.ifBlank { ep.episodeId },
+                        title = ep.title,
+                        date = ep.date
                     )
-                }.distinctBy { it.url }
-
-                if (episodes.isNotEmpty()) {
-                    seasons.add(DramaSeason(seasonNumber = sNum, title = sTitle, episodes = episodes))
                 }
-            }
-        }
-
-        // 2. If no season tabs found, check for flat episode lists
-        if (seasons.isEmpty()) {
-            val epElements = doc.select(
-                ".episode-list li, .eps-list li, .episodelist li, .ep-list a, .gmr-listseries a, .hal-episodes li a, .episodes a, li[data-video-source]"
             )
-            val episodes = epElements.mapNotNull { el ->
-                val a = if (el.tagName() == "a") el else el.selectFirst("a")
-                val href = a?.absUrl("href") ?: el.attr("data-video-source").takeIf { it.isNotBlank() } ?: return@mapNotNull null
-                val rawNum = el.selectFirst(".num, .ep-num, span:first-child, .fwduvp-thumbnail-title")?.text()?.filter { it.isDigit() }
-                val epNum = rawNum?.toIntOrNull() ?: 1
-                val rawTitle = el.selectFirst(".num, .ep-num, span:first-child, .fwduvp-thumbnail-title")?.text() ?: a?.text() ?: ""
-                val title = if (rawTitle.lowercase().contains("episode") || rawTitle.lowercase().contains("ep")) rawTitle else if (rawTitle.isNotBlank()) "Episode $rawTitle" else "Episode $epNum"
-                DramaEpisode(
-                    episodeNumber = epNum,
-                    url = href,
-                    title = title
-                )
-            }.distinctBy { it.url }
-
-            if (episodes.isNotEmpty()) {
-                seasons.add(DramaSeason(seasonNumber = 1, title = "Season 1", episodes = episodes))
-            }
         }
-
-        return seasons
     }
 
     // Untuk Drama, chapters = episodes
     override fun getChapters(itemId: String): Flow<List<Chapter>> = flow {
         try {
-            val seasons = fetchSeasonsAndEpisodes(itemId)
-            val isMultiSeason = seasons.size > 1
-
-            val chapters = mutableListOf<Chapter>()
-            for (season in seasons) {
-                for (ep in season.episodes) {
-                    val displayTitle = if (isMultiSeason) {
-                        "S${season.seasonNumber} ${ep.title}"
-                    } else {
-                        ep.title
-                    }
-                    chapters.add(Chapter(id = ep.url, title = displayTitle, url = ep.url, date = ep.date))
-                }
-            }
+            val series = fetchDramaSeries(itemId)
+            val chapters = com.example.data.sources.drama.DramaSeasonResolver.toChapters(series)
 
             if (chapters.isNotEmpty()) {
                 SourceStatusBus.clear(sourceId)
@@ -254,13 +207,13 @@ abstract class BaseDramaSource(protected val context: Context) : VideoSource, Co
             }
 
             val doc = fetchDocument(episodeUrl)
-            val docSubtitles = doc.select("track[src], track[data-src]").mapNotNull { track ->
-                val src = track.absUrl("src").ifEmpty { track.absUrl("data-src") }
-                if (src.isNotBlank()) {
-                    val lang = track.attr("srclang").ifBlank { track.attr("label") }.ifBlank { "Indonesian" }
-                    val format = if (src.contains(".srt", ignoreCase = true)) "srt" else "vtt"
-                    com.example.data.sources.Subtitle(language = lang, url = src, format = format)
-                } else null
+            val docSubtitles = com.example.data.sources.drama.DramaSubtitleExtractorEngine.extractSubtitlesFromHtml(doc.html(), episodeUrl)
+
+            // Multi-Server Embed Decryption & Resolution
+            val multiServerInfo = multiServerDramaResolver.resolveStreamInfoWithMultiServer(doc.html(), episodeUrl, customHeaders)
+            if (multiServerInfo != null && multiServerInfo.qualities.isNotEmpty()) {
+                val mergedSubs = (multiServerInfo.subtitles + docSubtitles).distinctBy { it.url }
+                return@runCatching multiServerInfo.copy(subtitles = mergedSubs)
             }
 
             val iframes = doc.select("iframe, .video-embed iframe, .gmr-embed-responsive iframe, .player iframe, #player iframe, #embed_holder iframe")
@@ -271,10 +224,8 @@ abstract class BaseDramaSource(protected val context: Context) : VideoSource, Co
             for (src in embedUrls) {
                 val iframeInfo = videoUrlInterceptor.interceptVideo(src, episodeUrl, timeoutMs = 12000L, headers = customHeaders)
                 if (iframeInfo != null && iframeInfo.qualities.isNotEmpty()) {
-                    val mergedSubs = if (iframeInfo.subtitles.isEmpty() && docSubtitles.isNotEmpty()) {
-                        iframeInfo.copy(subtitles = docSubtitles)
-                    } else iframeInfo
-                    return@runCatching mergedSubs
+                    val mergedSubs = (iframeInfo.subtitles + docSubtitles).distinctBy { it.url }
+                    return@runCatching iframeInfo.copy(subtitles = mergedSubs)
                 }
                 val streamUrl = videoUrlInterceptor.interceptStreamUrl(src, timeoutMs = 10000L, headers = customHeaders)
                 if (!streamUrl.isNullOrBlank()) {

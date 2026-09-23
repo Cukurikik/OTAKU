@@ -70,6 +70,8 @@ fun TvPlayerControlsOverlay(
     onBack: () -> Unit,
     isAudioOnly: Boolean = false,
     onToggleAudioOnly: (() -> Unit)? = null,
+    trackSelector: androidx.media3.exoplayer.trackselection.DefaultTrackSelector? = null,
+    exoTracks: androidx.media3.common.Tracks = player.currentTracks,
     modifier: Modifier = Modifier
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -86,13 +88,14 @@ fun TvPlayerControlsOverlay(
     var showServerDialog by remember { mutableStateOf(false) }
     var showSubtitleDialog by remember { mutableStateOf(false) }
     var showSpeedDialog by remember { mutableStateOf(false) }
+    var showAudioDialog by remember { mutableStateOf(false) }
 
     val playPauseFocusRequester = remember { FocusRequester() }
     val rootFocusRequester = remember { FocusRequester() }
 
     // Auto-hide controls timer
-    LaunchedEffect(isControlsVisible, showQualityDialog, showServerDialog, showSubtitleDialog, showSpeedDialog) {
-        if (isControlsVisible && !showQualityDialog && !showServerDialog && !showSubtitleDialog && !showSpeedDialog) {
+    LaunchedEffect(isControlsVisible, showQualityDialog, showServerDialog, showSubtitleDialog, showSpeedDialog, showAudioDialog) {
+        if (isControlsVisible && !showQualityDialog && !showServerDialog && !showSubtitleDialog && !showSpeedDialog && !showAudioDialog) {
             delay(5000)
             if (player.isPlaying) {
                 isControlsVisible = false
@@ -477,9 +480,28 @@ fun TvPlayerControlsOverlay(
                             )
                         }
 
+                        // Dual-Audio Track Chip (Proposal 2)
+                        val audioTracks = remember(exoTracks) {
+                            com.example.ui.player.AnimeTrackSelectionEngine.getAvailableAudioTracks(exoTracks)
+                        }
+                        if (audioTracks.isNotEmpty()) {
+                            val activeAudio = audioTracks.firstOrNull { it.isSelected }?.label ?: "Audio"
+                            TvActionChip(
+                                label = "Audio: $activeAudio",
+                                icon = Icons.Default.Audiotrack,
+                                onClick = {
+                                    showAudioDialog = true
+                                    showControlsAndResetTimer()
+                                }
+                            )
+                        }
+
                         // Subtitle Chip
+                        val subTracks = remember(exoTracks, subtitles) {
+                            com.example.ui.player.AnimeTrackSelectionEngine.getAvailableSubtitleTracks(exoTracks, subtitles)
+                        }
                         TvActionChip(
-                            label = "Subtitle",
+                            label = if (subTracks.any { it.isSelected && !it.isOff }) "Subtitle: Aktif" else "Subtitle: Mati",
                             icon = Icons.Default.ClosedCaption,
                             onClick = {
                                 showSubtitleDialog = true
@@ -553,20 +575,47 @@ fun TvPlayerControlsOverlay(
     }
 
     if (showSubtitleDialog) {
-        val subLabels = listOf("Mati (Tanpa Subtitle)") + subtitles.map { it.language.ifEmpty { "Subtitle" } }
+        val subTracks = com.example.ui.player.AnimeTrackSelectionEngine.getAvailableSubtitleTracks(exoTracks, subtitles)
+        val selectedSub = subTracks.firstOrNull { it.isSelected }?.label ?: "Mati (Off)"
         TvListSelectionDialog(
-            title = "Pilih Trek Subtitle",
-            items = subLabels,
-            selectedItem = subtitles.firstOrNull()?.language ?: "Mati (Tanpa Subtitle)",
+            title = "Pilih Trek Subtitle (ASS/SSA & VTT)",
+            items = subTracks.map { it.label },
+            selectedItem = selectedSub,
             onItemSelected = { label ->
-                if (label.startsWith("Mati")) {
-                    onSubtitleSelected(null)
-                } else {
-                    subtitles.find { it.language == label }?.let { onSubtitleSelected(it) }
+                val selectedOption = subTracks.find { it.label == label }
+                if (selectedOption != null) {
+                    if (trackSelector != null) {
+                        com.example.ui.player.AnimeTrackSelectionEngine.selectSubtitleTrack(player, trackSelector, selectedOption)
+                    } else if (selectedOption.isOff) {
+                        onSubtitleSelected(null)
+                    } else {
+                        val matchingSub = subtitles.find { it.language.equals(selectedOption.language, ignoreCase = true) }
+                        onSubtitleSelected(matchingSub)
+                    }
+                    feedbackText = if (selectedOption.isOff) "Subtitle Dinonaktifkan" else "Subtitle: $label"
                 }
                 showSubtitleDialog = false
             },
             onDismiss = { showSubtitleDialog = false }
+        )
+    }
+
+    if (showAudioDialog) {
+        val audioTracks = com.example.ui.player.AnimeTrackSelectionEngine.getAvailableAudioTracks(exoTracks)
+        val selectedAudio = audioTracks.firstOrNull { it.isSelected }?.label ?: "Default"
+        TvListSelectionDialog(
+            title = "Pilih Audio Track (Dual-Audio Dub Indo / JP)",
+            items = audioTracks.map { it.label },
+            selectedItem = selectedAudio,
+            onItemSelected = { label ->
+                val selectedOption = audioTracks.find { it.label == label }
+                if (selectedOption != null && trackSelector != null) {
+                    com.example.ui.player.AnimeTrackSelectionEngine.selectAudioTrack(player, trackSelector, selectedOption)
+                    feedbackText = "Audio: $label"
+                }
+                showAudioDialog = false
+            },
+            onDismiss = { showAudioDialog = false }
         )
     }
 

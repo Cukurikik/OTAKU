@@ -143,7 +143,7 @@ class SubtitleExtractionAndPlaybackTest {
             Ini adalah baris subtitle kedua.
         """.trimIndent()
 
-        val cues = SubtitleParser.parseVtt(rawVtt)
+        val cues = com.example.ui.player.SubtitleParser.parse(rawVtt)
         assertEquals(2, cues.size)
         assertEquals(1000L, cues[0].startMs)
         assertEquals(4000L, cues[0].endMs)
@@ -154,13 +154,13 @@ class SubtitleExtractionAndPlaybackTest {
         assertEquals("Ini adalah baris subtitle kedua.", cues[1].text)
 
         // Test with SubtitleSyncController offset application
-        val controller = SubtitleSyncController()
-        controller.applyOffset(0.5f) // +500ms
+        val controller = com.example.ui.player.SubtitleSyncController()
+        controller.applyOffset(0.5f) // +500ms (0.5 seconds)
 
         val sampleTime = 5200L // Without offset: outside cue (cue starts at 5500)
         val effectiveDisplayTime = controller.calculateDisplayTime(sampleTime) // 5200 + 500 = 5700ms (Inside cue 5500..8200)
-        
-        val activeCues = cues.filter { effectiveDisplayTime in it.startMs..it.endMs }
+
+        val activeCues = cues.filter { cue -> effectiveDisplayTime in cue.startMs..cue.endMs }
         assertEquals(1, activeCues.size)
         assertEquals("Ini adalah baris subtitle kedua.", activeCues[0].text)
     }

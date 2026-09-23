@@ -24,16 +24,14 @@ fun applySubtitleStyleToPlayerView(
     bgColor: Int,
     fontSizeSp: Float
 ) {
-    val captionStyle = CaptionStyleCompat(
-        textColor,
-        bgColor,
-        android.graphics.Color.TRANSPARENT,
-        CaptionStyleCompat.EDGE_TYPE_DROP_SHADOW,
-        android.graphics.Color.BLACK,
-        null
-    )
-    playerView.subtitleView?.setStyle(captionStyle)
-    playerView.subtitleView?.setFixedTextSize(TypedValue.COMPLEX_UNIT_SP, fontSizeSp)
+    playerView.subtitleView?.let { subView ->
+        com.example.ui.player.AnimeTrackSelectionEngine.configureSubtitleStyle(
+            subtitleView = subView,
+            fontSizeSp = fontSizeSp,
+            textColor = textColor,
+            bgColor = bgColor
+        )
+    }
 }
 
 /**

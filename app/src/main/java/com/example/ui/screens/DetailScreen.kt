@@ -20,6 +20,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,6 +56,7 @@ fun DetailScreen(
     var showCategoryDialog by remember { mutableStateOf(false) }
     var showTrackerDialog by remember { mutableStateOf(false) }
     var showTrackerSelection by remember { mutableStateOf(false) }
+    var showBatchDownloadSheet by remember { mutableStateOf(false) }
     var selectedTracker by remember { mutableStateOf<com.example.data.trackers.Tracker?>(null) }
     val resolvingStream by viewModel.resolvingStream.collectAsState()
     val streamTarget by viewModel.streamTarget.collectAsState()
@@ -399,12 +401,34 @@ fun DetailScreen(
 
                         item {
                             Spacer(modifier = Modifier.height(16.dp))
-                            Text(
-                                text = if (contentItem.type == ContentType.COMIC) "Chapters (${chapters.size})" else "Episodes (${chapters.size})",
-                                style = MaterialTheme.typography.titleLarge,
-                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                                fontWeight = FontWeight.Bold
-                            )
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = if (contentItem.type == ContentType.COMIC) "Chapters (${chapters.size})" else "Episodes (${chapters.size})",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (contentItem.type == ContentType.ANIME || contentItem.type == ContentType.DRAMA) {
+                                    OutlinedButton(
+                                        onClick = { showBatchDownloadSheet = true },
+                                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                                        shape = RoundedCornerShape(8.dp)
+                                    ) {
+                                        Icon(
+                                            Icons.Default.Download,
+                                            contentDescription = "Batch Unduh",
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text("Batch Unduh", style = MaterialTheme.typography.labelMedium)
+                                    }
+                                }
+                            }
                         }
 
                         if (contentItem.type == ContentType.DRAMA) {
@@ -531,6 +555,25 @@ fun DetailScreen(
                 tracker = selectedTracker!!,
                 onDismiss = { showTrackerDialog = false },
                 onBind = { trackItem -> viewModel.bindTracker(selectedTracker!!, trackItem) }
+            )
+        }
+
+        // Batch Download Bottom Sheet
+        if (showBatchDownloadSheet && item != null) {
+            val context = LocalContext.current
+            com.example.ui.download.BatchDownloadBottomSheet(
+                animeTitle = item?.title ?: "Anime",
+                chapters = chapters,
+                sourceId = item?.sourceId ?: "",
+                mangaId = item?.id ?: "",
+                onDismiss = { showBatchDownloadSheet = false },
+                onDownloadEnqueued = { count, quality ->
+                    android.widget.Toast.makeText(
+                        context,
+                        "Mengantrekan $count episode ($quality) ke antrean batch...",
+                        android.widget.Toast.LENGTH_SHORT
+                    ).show()
+                }
             )
         }
     }

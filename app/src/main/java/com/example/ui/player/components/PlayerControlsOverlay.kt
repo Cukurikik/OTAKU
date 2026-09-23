@@ -85,6 +85,8 @@ fun PlayerControlsOverlay(
     var showSpeedMenu by remember { mutableStateOf(false) }
     var showAspectRatioMenu by remember { mutableStateOf(false) }
     var showSubtitleTrackMenu by remember { mutableStateOf(false) }
+    var showSubtitleTrackDialog by remember { mutableStateOf(false) }
+    var showAudioTrackDialog by remember { mutableStateOf(false) }
     var showServerMenu by remember { mutableStateOf(false) }
     var showServerBottomSheet by remember { mutableStateOf(false) }
     var showQualityMenu by remember { mutableStateOf(false) }
@@ -224,7 +226,51 @@ fun PlayerControlsOverlay(
                     )
                 }
 
-                // Subtitle Settings Button
+                // Dual-Audio (Indo Dub vs JP Original) Track Selector
+                val availableAudioTracks = remember(exoTracks) {
+                    com.example.ui.player.AnimeTrackSelectionEngine.getAvailableAudioTracks(exoTracks)
+                }
+                IconButton(
+                    onClick = { showAudioTrackDialog = true },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(
+                            if (availableAudioTracks.size > 1) MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                            else Color.Black.copy(alpha = 0.5f),
+                            shape = CircleShape
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Audiotrack,
+                        contentDescription = "Pilih Audio (Dub Indo / JP Original)",
+                        tint = if (availableAudioTracks.size > 1) MaterialTheme.colorScheme.primary else Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                // Subtitle Track & Styling Selector
+                val availableSubTracks = remember(exoTracks, currentSubtitles) {
+                    com.example.ui.player.AnimeTrackSelectionEngine.getAvailableSubtitleTracks(exoTracks, currentSubtitles)
+                }
+                IconButton(
+                    onClick = { showSubtitleTrackDialog = true },
+                    modifier = Modifier
+                        .size(36.dp)
+                        .background(
+                            if (availableSubTracks.any { it.isSelected && !it.isOff }) MaterialTheme.colorScheme.secondary.copy(alpha = 0.35f)
+                            else Color.Black.copy(alpha = 0.5f),
+                            shape = CircleShape
+                        )
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ClosedCaption,
+                        contentDescription = "Pilih Subtitle (Mendukung ASS / SSA)",
+                        tint = if (availableSubTracks.any { it.isSelected && !it.isOff }) MaterialTheme.colorScheme.secondary else Color.White,
+                        modifier = Modifier.size(18.dp)
+                    )
+                }
+
+                // Subtitle Settings Button (Kustomisasi Font/Warna)
                 IconButton(
                     onClick = onShowSubtitleDialog,
                     modifier = Modifier
@@ -232,8 +278,8 @@ fun PlayerControlsOverlay(
                         .background(Color.Black.copy(alpha = 0.5f), shape = CircleShape)
                 ) {
                     Icon(
-                        imageVector = Icons.Default.Subtitles,
-                        contentDescription = "Pengaturan Subtitle",
+                        imageVector = Icons.Default.FormatPaint,
+                        contentDescription = "Kustomisasi Gaya Subtitle",
                         tint = Color.White,
                         modifier = Modifier.size(18.dp)
                     )
@@ -419,60 +465,7 @@ fun PlayerControlsOverlay(
                     }
                 }
 
-                // Native Subtitle Track Selector
-                val textGroups = exoTracks.groups.filter { it.type == androidx.media3.common.C.TRACK_TYPE_TEXT }
-                if (textGroups.isNotEmpty() || currentSubtitles.isNotEmpty()) {
-                    Box {
-                        IconButton(
-                            onClick = { showSubtitleTrackMenu = true },
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(Color.Black.copy(alpha = 0.5f), shape = CircleShape)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.ClosedCaption,
-                                contentDescription = "Pilih Subtitle",
-                                tint = Color.White,
-                                modifier = Modifier.size(18.dp)
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showSubtitleTrackMenu,
-                            onDismissRequest = { showSubtitleTrackMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Mati (Off)") },
-                                onClick = {
-                                    trackSelector.setParameters(
-                                        trackSelector.buildUponParameters()
-                                            .clearOverridesOfType(androidx.media3.common.C.TRACK_TYPE_TEXT)
-                                            .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_TEXT, true)
-                                    )
-                                    showSubtitleTrackMenu = false
-                                }
-                            )
-                            textGroups.forEach { group ->
-                                for (i in 0 until group.length) {
-                                    val format = group.getTrackFormat(i)
-                                    val label = format.language ?: format.label ?: "Subtitle ${i + 1}"
-                                    DropdownMenuItem(
-                                        text = { Text(label) },
-                                        onClick = {
-                                            val override = androidx.media3.common.TrackSelectionOverride(group.mediaTrackGroup, i)
-                                            trackSelector.setParameters(
-                                                trackSelector.buildUponParameters()
-                                                    .clearOverridesOfType(androidx.media3.common.C.TRACK_TYPE_TEXT)
-                                                    .setTrackTypeDisabled(androidx.media3.common.C.TRACK_TYPE_TEXT, false)
-                                                    .addOverride(override)
-                                            )
-                                            showSubtitleTrackMenu = false
-                                        }
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+                // (Audio and Subtitle buttons now unified in top controls)
 
                 // Server Selector Button
                 if (servers.size > 1) {
@@ -656,6 +649,29 @@ fun PlayerControlsOverlay(
                 triggerFeedback("Beralih ke server: ${server.name}")
             },
             onDismissRequest = { showServerBottomSheet = false }
+        )
+
+        // Audio Track Selection Dialog (Proposal 2)
+        AudioTrackSelectionDialog(
+            showDialog = showAudioTrackDialog,
+            onDismissRequest = { showAudioTrackDialog = false },
+            audioTracks = com.example.ui.player.AnimeTrackSelectionEngine.getAvailableAudioTracks(exoTracks),
+            onAudioTrackSelected = { audioOption ->
+                com.example.ui.player.AnimeTrackSelectionEngine.selectAudioTrack(player, trackSelector, audioOption)
+                triggerFeedback("Audio: ${audioOption.label}")
+            }
+        )
+
+        // Subtitle Track Selection Dialog with ASS / SSA Support (Proposal 2)
+        SubtitleTrackSelectionDialog(
+            showDialog = showSubtitleTrackDialog,
+            onDismissRequest = { showSubtitleTrackDialog = false },
+            subtitleTracks = com.example.ui.player.AnimeTrackSelectionEngine.getAvailableSubtitleTracks(exoTracks, currentSubtitles),
+            onSubtitleTrackSelected = { subOption ->
+                com.example.ui.player.AnimeTrackSelectionEngine.selectSubtitleTrack(player, trackSelector, subOption)
+                triggerFeedback(if (subOption.isOff) "Subtitle Dinonaktifkan" else "Subtitle: ${subOption.label}")
+            },
+            onOpenCustomizer = onShowSubtitleDialog
         )
 
         // Feedback Text Overlay

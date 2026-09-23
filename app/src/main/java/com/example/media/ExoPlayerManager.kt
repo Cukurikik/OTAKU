@@ -91,7 +91,7 @@ object ExoPlayerManager {
     }
 
     /**
-     * Injeksi daftar Subtitle eksternal, DRM konfigurasi, dan MediaMetadata.
+     * Injeksi daftar Subtitle eksternal, DRM konfigurasi, dan MediaMetadata via [ExoPlayerMediaItemFactory].
      */
     fun createMediaItemWithSubtitles(
         videoUrl: String,
@@ -100,36 +100,13 @@ object ExoPlayerManager {
         drmHeaders: Map<String, String> = emptyMap(),
         mediaMetadata: MediaMetadata? = null
     ): MediaItem {
-        val mediaItemBuilder = MediaItem.Builder().setUri(Uri.parse(videoUrl))
-
-        if (mediaMetadata != null) {
-            mediaItemBuilder.setMediaMetadata(mediaMetadata)
-        }
-
-        if (subtitles.isNotEmpty()) {
-            val configs = subtitles.mapIndexed { index, sub ->
-                val mime = inferSubtitleMimeType(sub.format.ifEmpty { sub.url })
-                val isDefault = index == 0 || sub.language.contains("id", ignoreCase = true) || sub.language.contains("indonesia", ignoreCase = true)
-                MediaItem.SubtitleConfiguration.Builder(Uri.parse(sub.url))
-                    .setMimeType(mime)
-                    .setLanguage(sub.language.ifEmpty { "id" })
-                    .setLabel(sub.language.ifEmpty { "Subtitle ${index + 1}" })
-                    .setSelectionFlags(if (isDefault) C.SELECTION_FLAG_DEFAULT else 0)
-                    .build()
-            }
-            mediaItemBuilder.setSubtitleConfigurations(configs)
-        }
-
-        if (!drmLicenseUrl.isNullOrEmpty()) {
-            val drmConfig = MediaItem.DrmConfiguration.Builder(C.WIDEVINE_UUID)
-                .setLicenseUri(drmLicenseUrl)
-            if (drmHeaders.isNotEmpty()) {
-                drmConfig.setLicenseRequestHeaders(drmHeaders)
-            }
-            mediaItemBuilder.setDrmConfiguration(drmConfig.build())
-        }
-
-        return mediaItemBuilder.build()
+        return ExoPlayerMediaItemFactory.createMediaItem(
+            videoUri = videoUrl,
+            subtitles = subtitles,
+            drmLicenseUrl = drmLicenseUrl,
+            drmHeaders = drmHeaders,
+            mediaMetadata = mediaMetadata
+        )
     }
 
     /**
@@ -153,11 +130,9 @@ object ExoPlayerManager {
             streamUrlProvider = streamUrlProvider
         )
 
-        val streamCache = VideoCache.getInstance(context)
-        val streamDataSourceFactory = CacheDataSource.Factory()
-            .setCache(streamCache)
-            .setUpstreamDataSourceFactory(resolvingDataSourceFactory)
-            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        val segmentCacheFactory = CacheDataSourceFactory(context)
+        val hlsProxy = HlsSegmentCacheProxy(context, segmentCacheFactory)
+        val streamDataSourceFactory = hlsProxy.createHlsCachingDataSourceFactory(resolvingDataSourceFactory)
 
         val downloadCache = ExoDownloadManager.getCache(context)
         val cacheDataSourceFactory = CacheDataSource.Factory()
@@ -174,12 +149,10 @@ object ExoPlayerManager {
             }
         }
 
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(15000, 50000, 2500, 5000)
-            .setPrioritizeTimeOverSizeThresholds(true)
-            .build()
+        val loadControl = AdaptiveLoadControlBuilder().buildDefaultLoadControl()
 
         return ExoPlayer.Builder(context)
+            .setRenderersFactory(com.example.ui.player.CustomRenderersFactory(context))
             .setMediaSourceFactory(DefaultMediaSourceFactory(delegatingDataSourceFactory))
             .setTrackSelector(trackSelector)
             .setBandwidthMeter(bandwidthMeter)

@@ -15,7 +15,9 @@ import com.example.data.models.TrackEntity
 import com.example.data.models.UpdateEntity
 import com.example.data.models.UserProfile
 
-@Database(entities = [HistoryItem::class, LibraryEntry::class, ChapterEntry::class, DownloadEntity::class, PageDownloadEntity::class, CategoryEntry::class, TrackEntity::class, UpdateEntity::class, UserProfile::class, com.example.data.models.PendingSyncEntity::class], version = 16, exportSchema = true)
+import com.example.data.models.AnimeMalMapping
+
+@Database(entities = [HistoryItem::class, LibraryEntry::class, ChapterEntry::class, DownloadEntity::class, PageDownloadEntity::class, CategoryEntry::class, TrackEntity::class, UpdateEntity::class, UserProfile::class, com.example.data.models.PendingSyncEntity::class, AnimeMalMapping::class], version = 17, exportSchema = true)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun historyDao(): HistoryDao
     abstract fun libraryDao(): LibraryDao
@@ -27,6 +29,7 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun updateDao(): UpdateDao
     abstract fun userProfileDao(): UserProfileDao
     abstract fun pendingSyncsDao(): PendingSyncDao
+    abstract fun animeMalMappingDao(): AnimeMalMappingDao
 
     companion object {
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -190,6 +193,14 @@ abstract class AppDatabase : RoomDatabase() {
                         "INSERT INTO `pending_sync_actions` (`id`, `mediaId`, `trackerType`, `progress`, `updatedAt`, `profileId`, `remoteId`, `itemId`) SELECT `id`, `itemId`, `trackerId`, `progress`, strftime('%s','now') * 1000, `profileId`, `remoteId`, `itemId` FROM `pending_syncs`"
                     )
                 } catch (_: Exception) {}
+            }
+        }
+
+        val MIGRATION_16_17 = object : Migration(16, 17) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `anime_mal_mappings` (`cleanTitle` TEXT NOT NULL, `malId` INTEGER NOT NULL, `animeTitle` TEXT NOT NULL DEFAULT '', `updatedAt` INTEGER NOT NULL, PRIMARY KEY(`cleanTitle`))"
+                )
             }
         }
     }

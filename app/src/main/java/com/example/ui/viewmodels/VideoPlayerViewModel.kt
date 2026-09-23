@@ -73,6 +73,10 @@ class VideoPlayerViewModel(
 
     val playlistQueue = PlaylistQueue(initialEpisodeId = initialEpisodeId)
 
+    val playbackStateRepository = com.example.data.repository.PlaybackStateRepository(historyDao, chapterDao)
+    val preFetchWorker = com.example.data.sources.drama.PreFetchWorker(repository)
+    val dramaAutoQueueEngine = com.example.data.sources.drama.DramaAutoQueueEngine(playbackStateRepository, preFetchWorker)
+
     private val serverResolver by lazy {
         AnimeMultiServerResolver(context)
     }
@@ -262,12 +266,25 @@ class VideoPlayerViewModel(
     /**
      * Checks continuous playback threshold according to the formulation:
      * t_sisa = T_total - T_current
+     * t_trigger = t_duration * 0.80
      * Trigger Overlay: Show Countdown if t_sisa <= 10s and not cancelled.
+     * Trigger Pre-fetch: Auto-resolve next episode stream when progress >= 80%.
      */
     fun checkContinuousPlayback(currentPosition: Long, duration: Long) {
         if (duration <= 0L || isAutoNextCancelled) return
         val remainingTime = duration - currentPosition
         val hasNext = playlistQueue.hasNext() || _uiState.value.nextEpisode != null
+
+        val nextEpUrl = playlistQueue.getNextEpisodeUrl()
+        dramaAutoQueueEngine.onPlaybackProgressChanged(
+            currentPosMs = currentPosition,
+            totalDurationMs = duration,
+            currentEpisodeId = _uiState.value.currentEpisodeId,
+            nextEpisodeUrl = nextEpUrl,
+            sourceId = sourceId,
+            seriesId = itemId,
+            seriesTitle = _uiState.value.currentTitle
+        )
 
         if (hasNext && remainingTime in 1..10_000L) {
             val countdownSecs = ((remainingTime / 1000L).toInt()).coerceIn(1, 10).coerceAtMost(5)
@@ -306,6 +323,7 @@ class VideoPlayerViewModel(
 
     /**
      * Advances to the next episode in the playlist queue and continuously loads its video stream.
+     * Uses pre-fetched stream info directly if available for 0ms transition latency.
      */
     fun playNextEpisode() {
         isAutoNextCancelled = false
@@ -324,7 +342,14 @@ class VideoPlayerViewModel(
             }
             playlistQueue.setCurrentEpisodeId(nextEpisode.id)
             setPlaylistEpisodes(playlistQueue.episodes, nextEpisode.id)
-            loadVideoStream(nextEpisodeUrl)
+
+            val prefetchedInfo = dramaAutoQueueEngine.getNextStreamInfoForTransition()
+            if (prefetchedInfo != null && (prefetchedInfo.qualities.isNotEmpty() || prefetchedInfo.embedUrl.isNotBlank())) {
+                setAvailableServers(prefetchedInfo.servers)
+                _uiState.update { it.copy(streamInfo = PlayerState.Success(prefetchedInfo)) }
+            } else {
+                loadVideoStream(nextEpisodeUrl)
+            }
         }
     }
 

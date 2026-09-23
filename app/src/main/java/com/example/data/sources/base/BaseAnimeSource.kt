@@ -333,6 +333,20 @@ abstract class BaseAnimeSource(protected val context: Context) : VideoSource, Co
                 return@flow
             }
 
+            // Fallback Extractor Chain: Unpack packed JS, CryptoJS, VidHide, StreamWish, etc. from pageHtml
+            val fallbackChain = com.example.data.sources.anime.extractors.FallbackExtractorChain()
+            val chainQualities = fallbackChain.extractQualities(pageHtml, episodeId, customHeaders)
+            if (chainQualities.isNotEmpty()) {
+                SourceStatusBus.clear(sourceId)
+                emit(VideoStreamInfo(
+                    episodeId = episodeId,
+                    embedUrl = chainQualities.first().url,
+                    qualities = chainQualities.distinctBy { it.url },
+                    headers = customHeaders
+                ))
+                return@flow
+            }
+
             // Fallback: embed URL pertama jika ada
             if (embedUrls.isNotEmpty()) {
                 SourceStatusBus.clear(sourceId)

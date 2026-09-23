@@ -668,11 +668,9 @@ fun ExoPlayerView(
             streamUrlProvider = { currentUrlRef.value }
         )
 
-        val streamCache = VideoCache.getInstance(context)
-        val streamDataSourceFactory = CacheDataSource.Factory()
-            .setCache(streamCache)
-            .setUpstreamDataSourceFactory(resolvingDataSourceFactory)
-            .setFlags(CacheDataSource.FLAG_IGNORE_CACHE_ON_ERROR)
+        val segmentCacheFactory = com.example.media.CacheDataSourceFactory(context)
+        val hlsProxy = com.example.media.HlsSegmentCacheProxy(context, segmentCacheFactory)
+        val streamDataSourceFactory = hlsProxy.createHlsCachingDataSourceFactory(resolvingDataSourceFactory)
 
         val downloadCache = ExoDownloadManager.getCache(context)
         val cacheDataSourceFactory = CacheDataSource.Factory()
@@ -689,12 +687,10 @@ fun ExoPlayerView(
             }
         }
 
-        val loadControl = DefaultLoadControl.Builder()
-            .setBufferDurationsMs(15000, 50000, 2500, 5000)
-            .setPrioritizeTimeOverSizeThresholds(true)
-            .build()
+        val loadControl = com.example.media.AdaptiveLoadControlBuilder().buildDefaultLoadControl()
 
         ExoPlayer.Builder(context)
+            .setRenderersFactory(com.example.ui.player.CustomRenderersFactory(context))
             .setMediaSourceFactory(DefaultMediaSourceFactory(delegatingDataSourceFactory))
             .setTrackSelector(trackSelector)
             .setBandwidthMeter(bandwidthMeter)
@@ -1098,6 +1094,8 @@ fun ExoPlayerView(
 
                 TvPlayerControlsOverlay(
                     player = currentPlayer,
+                    trackSelector = trackSelector,
+                    exoTracks = exoTracks,
                     title = title,
                     episodeTitle = episodeTitle,
                     serverName = currentServerName,

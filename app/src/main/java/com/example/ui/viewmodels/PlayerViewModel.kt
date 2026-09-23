@@ -56,6 +56,10 @@ class PlayerViewModel(
         VideoExtractorEngine(context)
     }
 
+    val playbackStateRepository = com.example.data.repository.PlaybackStateRepository(historyDao, chapterDao)
+    val preFetchWorker = com.example.data.sources.drama.PreFetchWorker(repository)
+    val dramaAutoQueueEngine = com.example.data.sources.drama.DramaAutoQueueEngine(playbackStateRepository, preFetchWorker)
+
     private val _isFailoverResolving = MutableStateFlow(false)
     val isFailoverResolving: StateFlow<Boolean> = _isFailoverResolving.asStateFlow()
 
@@ -316,12 +320,26 @@ class PlayerViewModel(
     /**
      * Checks continuous playback threshold:
      * t_sisa = T_total - T_current
+     * t_trigger = t_duration * 0.80
      * Trigger Overlay: Show Countdown if t_sisa <= 10s and not cancelled.
+     * Trigger Pre-fetch: Auto-resolve next episode stream when progress >= 80%.
      */
     fun checkContinuousPlayback(currentPosition: Long, duration: Long) {
         if (duration <= 0L || isAutoNextCancelled) return
         val remainingTime = duration - currentPosition
         val hasNext = playlistQueue.hasNext() || nextEpisode.value != null
+
+        val nextEp = playlistQueue.getNextEpisode() ?: nextEpisode.value
+        val nextEpUrl = playlistQueue.getNextEpisodeUrl() ?: nextEp?.url ?: nextEp?.id
+        dramaAutoQueueEngine.onPlaybackProgressChanged(
+            currentPosMs = currentPosition,
+            totalDurationMs = duration,
+            currentEpisodeId = _currentEpisodeId.value,
+            nextEpisodeUrl = nextEpUrl,
+            sourceId = activeSourceId,
+            seriesId = activeItemId,
+            seriesTitle = _currentTitle.value
+        )
 
         if (hasNext && remainingTime in 1..10_000L) {
             val countdownSecs = ((remainingTime / 1000L).toInt()).coerceIn(1, 10).coerceAtMost(5)
@@ -470,47 +488,28 @@ class PlayerViewModel(
         viewModelScope.launch {
             try {
                 val currentProfileId = com.example.data.ProfileManager.currentProfileIdValue
-                var tracks = trackDao.getTracksForMangaSync(currentProfileId, itemId)
-                var malTrack = tracks.find { it.trackerId.equals("myanimelist", ignoreCase = true) }
+                val tracks = trackDao.getTracksForMangaSync(currentProfileId, itemId)
+                val malTrack = tracks.find { it.trackerId.equals("myanimelist", ignoreCase = true) }
 
-                // Auto-resolve MAL ID if not yet mapped
-                if (malTrack == null) {
+                var resolvedMalId: Long? = malTrack?.remoteId
+
+                // Auto-resolve MAL ID via AnimeMalAutoBinderEngine if not yet mapped
+                if (resolvedMalId == null || resolvedMalId <= 0) {
                     val detail = repository.getDetail(itemId, sourceId)
-                    val searchTitle = (detail?.title ?: _currentTitle.value)
-                        .replace(Regex("\\(.*?\\)"), "")
-                        .replace(Regex("\\[.*?\\]"), "")
-                        .trim()
-                    
-                    if (searchTitle.isNotBlank()) {
-                        val malTracker = com.example.data.trackers.MyAnimeListTracker(settingsManager)
-                        val searchResults = malTracker.search(searchTitle)
-                        var bestMatch: com.example.data.models.TrackItem? = null
-                        var bestScore = 0.0
-                        for (item in searchResults) {
-                            val score = com.example.data.trackers.AutoBindMappingEngine.calculateSimilarity(searchTitle, item.title)
-                            if (score > bestScore) {
-                                bestScore = score
-                                bestMatch = item
-                            }
-                        }
-                        if (bestMatch != null && bestScore >= 0.70) {
-                            val contentItem = detail ?: com.example.data.models.ContentItem(
-                                id = itemId,
-                                title = _currentTitle.value,
-                                source = sourceId,
-                                imageUrl = "",
-                                type = com.example.data.models.ContentType.ANIME
-                            )
-                            val boundEntity = malTracker.bind(bestMatch, contentItem).copy(profileId = currentProfileId)
-                            trackDao.insertTrack(boundEntity)
-                            malTrack = boundEntity
-                        }
-                    }
+                    val rawTitle = detail?.title ?: _currentTitle.value
+
+                    val app = context.applicationContext as? com.example.OtakuHubApp
+                    val mappingDao = app?.database?.animeMalMappingDao()
+
+                    resolvedMalId = com.example.data.trackers.AnimeMalAutoBinderEngine.resolveMalId(
+                        rawTitle = rawTitle,
+                        mappingDao = mappingDao
+                    )
                 }
 
-                if (malTrack != null && malTrack.remoteId > 0) {
+                if (resolvedMalId != null && resolvedMalId > 0) {
                     val response = com.example.data.trackers.AniSkipClient.api.getSkipTimes(
-                        malId = malTrack.remoteId,
+                        malId = resolvedMalId,
                         episodeNumber = episodeNumber
                     )
                     if (response.found && response.results != null) {
@@ -697,7 +696,14 @@ class PlayerViewModel(
             _currentTitle.value = nextFromQueue.title
             playlistQueue.setCurrentEpisodeId(nextFromQueue.id)
             updateEpisodeNavigation()
-            loadVideo()
+
+            val prefetched = dramaAutoQueueEngine.getNextStreamInfoForTransition()
+            if (prefetched != null && (prefetched.qualities.isNotEmpty() || prefetched.embedUrl.isNotBlank())) {
+                _streamInfo.value = PlayerState.Success(prefetched)
+                skipTimes.value = emptyList()
+            } else {
+                loadVideo()
+            }
             return
         }
 
@@ -731,7 +737,14 @@ class PlayerViewModel(
                 _currentTitle.value = nextEp.title
                 playlistQueue.setCurrentEpisodeId(nextEp.id)
                 updateEpisodeNavigation()
-                loadVideo()
+
+                val prefetched = dramaAutoQueueEngine.getNextStreamInfoForTransition()
+                if (prefetched != null && (prefetched.qualities.isNotEmpty() || prefetched.embedUrl.isNotBlank())) {
+                    _streamInfo.value = PlayerState.Success(prefetched)
+                    skipTimes.value = emptyList()
+                } else {
+                    loadVideo()
+                }
             }
         }
     }

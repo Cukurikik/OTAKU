@@ -323,9 +323,10 @@ open class VikiSource(context: Context) : BaseDramaSource(context) {
             val videoId = extractVideoId(episodeUrl)
             val webEmbedUrl = "https://www.viki.com/videos/$videoId"
 
-            val subtitles = listOf(
-                Subtitle(language = "Indonesian", url = "$API_BASE/videos/$videoId/subtitles/id.vtt?app=$APP_ID", format = "vtt"),
-                Subtitle(language = "English", url = "$API_BASE/videos/$videoId/subtitles/en.vtt?app=$APP_ID", format = "vtt")
+            val subtitles = com.example.data.sources.drama.DramaSubtitleExtractorEngine.extractVikiSubtitles(
+                videoId = videoId,
+                apiBase = API_BASE,
+                appId = APP_ID
             )
 
             // 1. Try Viki API streams.json

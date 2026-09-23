@@ -34,13 +34,14 @@ class SynchronizedScrobblerAndCrossResumeTest {
     @Before
     fun setUp() {
         context = ApplicationProvider.getApplicationContext()
-        secureStore = SecureCredentialStore(context)
-        trackerManager = TrackerManager(context)
+        val settings = com.example.data.SettingsManager(context)
+        secureStore = com.example.data.scrobbler.SecureCredentialStoreImpl(context, settings)
+        trackerManager = TrackerManager(context, settings)
         scrobblerEngine = ScrobblerEngine(
             context = context,
             secureStorage = secureStore,
             trackerManager = trackerManager,
-            config = ScrobbleConfig(completionThreshold = 0.85f)
+            config = ScrobbleConfig(completionThreshold = 0.85)
         )
         CrossDeviceResumeManager.resetForTesting("device_phone_001")
     }

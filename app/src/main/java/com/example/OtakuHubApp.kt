@@ -88,7 +88,8 @@ class OtakuHubApp : Application(), ImageLoaderFactory {
             AppDatabase.MIGRATION_12_13,
             com.example.data.db.AppDatabase.MIGRATION_13_14,
             com.example.data.db.AppDatabase.MIGRATION_14_15,
-            com.example.data.db.AppDatabase.MIGRATION_15_16
+            com.example.data.db.AppDatabase.MIGRATION_15_16,
+            com.example.data.db.AppDatabase.MIGRATION_16_17
         )
 
         if (sqlCipherFactory != null) {

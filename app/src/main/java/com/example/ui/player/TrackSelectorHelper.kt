@@ -156,4 +156,29 @@ object TrackSelectorHelper {
                 .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, true)
         )
     }
+
+    fun getAudioTracks(tracks: Tracks): List<AudioTrackOption> {
+        return AnimeTrackSelectionEngine.getAvailableAudioTracks(tracks)
+    }
+
+    fun selectAudioTrack(
+        trackSelector: DefaultTrackSelector,
+        group: Tracks.Group,
+        trackIndex: Int
+    ) {
+        val override = TrackSelectionOverride(group.mediaTrackGroup, trackIndex)
+        trackSelector.setParameters(
+            trackSelector.buildUponParameters()
+                .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
+                .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, false)
+                .addOverride(override)
+        )
+    }
+
+    fun getSubtitleTracks(
+        tracks: Tracks,
+        externalSubtitles: List<com.example.data.sources.Subtitle> = emptyList()
+    ): List<SubtitleTrackOption> {
+        return AnimeTrackSelectionEngine.getAvailableSubtitleTracks(tracks, externalSubtitles)
+    }
 }
