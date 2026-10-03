@@ -75,6 +75,12 @@ class SourceHealthProbe(
         val allMirrors = SourceEndpointRegistry.getAllMirrors(sourceId)
         if (allMirrors.isEmpty()) return@withContext null
 
+        val engine = com.example.network.domain.DynamicDomainResolverEngine.getOrCreate(sourceId, allMirrors)
+        val bestDomain = engine.autoHeal(null, failingUrlOrBase, client)
+        if (!bestDomain.isNullOrBlank()) {
+            return@withContext bestDomain
+        }
+
         val failingHost = runCatching { URI(failingUrlOrBase).host?.lowercase() }.getOrNull()
             ?: failingUrlOrBase.lowercase()
 

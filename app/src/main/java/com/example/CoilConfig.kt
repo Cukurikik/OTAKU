@@ -34,6 +34,7 @@ class CoilConfig(private val context: Context) : ImageLoaderFactory {
                 .respectCacheHeaders(false)
                 .components {
                     add(com.example.data.sources.local.CbzFetcher.Factory())
+                    add(com.example.data.sources.local.CoilEncryptedStreamFetcher.Factory())
                 }
                 .okHttpClient {
                     buildCoilOkHttpClient()

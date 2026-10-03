@@ -65,6 +65,7 @@ object NetworkModule {
             .connectTimeout(30, TimeUnit.SECONDS)
             .readTimeout(30, TimeUnit.SECONDS)
             .writeTimeout(30, TimeUnit.SECONDS)
+            .dns(com.example.network.dns.CloudflareDoHResolver.instance)
             .addInterceptor(com.example.network.AppCheckInterceptor())
             .addInterceptor(com.example.network.interceptor.CloudflareInterceptor())
             .addInterceptor(CloudflareBypassInterceptor(WORKER_BASE_URL, WORKER_AUTH_TOKEN))

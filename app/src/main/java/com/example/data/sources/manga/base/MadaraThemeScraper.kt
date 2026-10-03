@@ -27,10 +27,7 @@ abstract class MadaraThemeScraper(
                 
                 val link = linkEl?.attr("href")?.takeIf { h -> h.contains("/$mangaPath/") } ?: return@mapNotNull null
                 
-                val img = it.selectFirst("img")?.let { img ->
-                    img.attr("data-src").ifEmpty { img.attr("data-lazy-src") }.ifEmpty { img.attr("src") }
-                } ?: ""
-                
+                val img = UniversalMangaDomExtractor.extractImageUrl(it, baseUrl)
                 val title = it.selectFirst("h3 a, .post-title a")?.text()?.trim() ?: linkEl.text().trim()
                 if (title.isBlank()) return@mapNotNull null
 
@@ -62,9 +59,7 @@ abstract class MadaraThemeScraper(
             val doc = fetchDocument(url)
             val items = doc.select(".c-tabs-item__content, .search-wrap .tab-item").mapNotNull {
                 val link = it.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-                val img = it.selectFirst("img")?.let { img ->
-                    img.attr("data-src").ifEmpty { img.attr("data-lazy-src") }.ifEmpty { img.attr("src") }
-                } ?: ""
+                val img = UniversalMangaDomExtractor.extractImageUrl(it, baseUrl)
                 val title = it.selectFirst("h3, .post-title, .title")?.text()?.trim() ?: "Unknown"
 
                 ContentItem(
@@ -92,9 +87,7 @@ abstract class MadaraThemeScraper(
         try {
             val doc = fetchDocument(itemId)
             val title = doc.selectFirst(".post-title h1, .post-title h3, h1.entry-title")?.text()?.trim()?.replace(Regex("HOT$"), "")?.trim() ?: "Unknown"
-            val img = doc.selectFirst(".summary_image img, .featured-image img")?.let { img ->
-                img.attr("data-src").ifEmpty { img.attr("data-lazy-src") }.ifEmpty { img.attr("src") }
-            } ?: ""
+            val img = UniversalMangaDomExtractor.extractImageUrl(doc.selectFirst(".summary_image img, .featured-image img") ?: doc, baseUrl)
             val desc = doc.selectFirst(".summary__content, .description-summary p, .manga-excerpt")?.text()?.trim() ?: ""
             val genres = doc.select(".genres-content a, .genre-links a").map { it.text().trim() }
 
@@ -158,10 +151,7 @@ abstract class MadaraThemeScraper(
     override suspend fun getPagesList(chapterId: String): List<String> {
         try {
             val doc = fetchDocument(chapterId)
-            val pages = doc.select(".reading-content .page-break img, .reading-content img, .entry-content img, .chapter-image img").mapNotNull {
-                it.attr("data-src").ifEmpty { it.attr("data-lazy-src") }.ifEmpty { it.attr("src") }.trim()
-            }.filter { it.isNotBlank() && !it.contains("banner") && !it.contains("logo") }
-            return pages
+            return UniversalMangaDomExtractor.extractChapterPages(doc, chapterId)
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {

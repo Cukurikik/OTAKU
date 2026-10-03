@@ -41,27 +41,47 @@ class ComicDownloadWorker(
         return try {
             setForeground(createForegroundInfo(chapterTitle, 0, imageUrls.size))
 
-            val downloadsDir = File(context.getExternalFilesDir(null), "comics/$safeMangaTitle")
-            if (!downloadsDir.exists()) downloadsDir.mkdirs()
+            val settings = com.example.data.SettingsManager(context)
+            val useSecureStorage = settings.galleryIsolationEnabled || settings.fileObfuscationEnabled
+
+            val downloadsDir = if (useSecureStorage) {
+                com.example.storage.AppStorageDirectoryConfig.getSecureMangaDir(context, "comics", safeMangaTitle)
+            } else {
+                File(context.getExternalFilesDir(null), "comics/$safeMangaTitle").apply { mkdirs() }
+            }
 
             val cbzFile = File(downloadsDir, "$safeChapterTitle.cbz")
             
             withContext(Dispatchers.IO) {
-                ZipOutputStream(BufferedOutputStream(FileOutputStream(cbzFile))).use { zipOut ->
+                if (useSecureStorage) {
+                    val entries = mutableMapOf<String, ByteArray>()
                     imageUrls.forEachIndexed { index, url ->
                         val imageBytes = fetchImageBytes(url)
                         if (imageBytes.isNotEmpty()) {
-                            val entry = ZipEntry(String.format("page_%03d.jpg", index + 1))
-                            zipOut.putNextEntry(entry)
-                            zipOut.write(imageBytes)
-                            zipOut.closeEntry()
+                            val entryName = String.format("page_%03d.dat", index + 1)
+                            entries[entryName] = imageBytes
                         }
-                        
-                        // Small delay to prevent rate-limiting
                         delay(100)
-
-                        // Update progress
                         setForeground(createForegroundInfo(chapterTitle, index + 1, imageUrls.size))
+                    }
+                    com.example.storage.secure.SecureEncryptedMediaStorage(context).createEncryptedArchive(cbzFile, entries)
+                } else {
+                    ZipOutputStream(BufferedOutputStream(FileOutputStream(cbzFile))).use { zipOut ->
+                        imageUrls.forEachIndexed { index, url ->
+                            val imageBytes = fetchImageBytes(url)
+                            if (imageBytes.isNotEmpty()) {
+                                val entry = ZipEntry(String.format("page_%03d.jpg", index + 1))
+                                zipOut.putNextEntry(entry)
+                                zipOut.write(imageBytes)
+                                zipOut.closeEntry()
+                            }
+                            
+                            // Small delay to prevent rate-limiting
+                            delay(100)
+
+                            // Update progress
+                            setForeground(createForegroundInfo(chapterTitle, index + 1, imageUrls.size))
+                        }
                     }
                 }
             }

@@ -61,7 +61,7 @@ abstract class BloggerThemeScraper(
                         val contentHtml = entry.optJSONObject("content")?.optString("\$t") ?: ""
                         val imgMatch = Pattern.compile("<img[^>]+src=[\"']([^\"']+)[\"']").matcher(contentHtml)
                         val contentImg = if (imgMatch.find()) imgMatch.group(1) ?: "" else ""
-                        val finalImg = mediaThumb.ifBlank { contentImg }
+                        val finalImg = UniversalMangaDomExtractor.transformBloggerUrl(mediaThumb.ifBlank { contentImg })
 
                         if (alternateLink.isNotBlank()) {
                             items.add(
@@ -88,9 +88,7 @@ abstract class BloggerThemeScraper(
                 val elements = doc.select(".post-outer, .post, article, .hentry, .bsx, .item, .listupd .bs, .grid-posts .post, .blog-post, .hfeed > div, .b-img")
                 for (it in elements) {
                     val link = it.selectFirst("a")?.attr("href") ?: continue
-                    val img = it.selectFirst("img")?.let { imgEl ->
-                        imgEl.attr("src").ifBlank { imgEl.attr("data-src").ifBlank { imgEl.attr("data-original") } }
-                    } ?: ""
+                    val img = UniversalMangaDomExtractor.extractImageUrl(it, baseUrl)
                     val title = it.selectFirst(".post-title, h3, h2, .entry-title, .title, a[title]")?.text()?.trim() 
                         ?: it.selectFirst("a")?.attr("title")?.trim() 
                         ?: "Unknown"
@@ -153,7 +151,7 @@ abstract class BloggerThemeScraper(
                         val contentHtml = entry.optJSONObject("content")?.optString("\$t") ?: ""
                         val imgMatch = Pattern.compile("<img[^>]+src=[\"']([^\"']+)[\"']").matcher(contentHtml)
                         val contentImg = if (imgMatch.find()) imgMatch.group(1) ?: "" else ""
-                        val finalImg = mediaThumb.ifBlank { contentImg }
+                        val finalImg = UniversalMangaDomExtractor.transformBloggerUrl(mediaThumb.ifBlank { contentImg })
 
                         if (alternateLink.isNotBlank()) {
                             items.add(
@@ -179,9 +177,7 @@ abstract class BloggerThemeScraper(
                 val elements = doc.select(".post-outer, .post, article, .hentry, .bsx, .item, .listupd .bs, .grid-posts .post, .blog-post, .hfeed > div")
                 for (it in elements) {
                     val link = it.selectFirst("a")?.attr("href") ?: continue
-                    val img = it.selectFirst("img")?.let { imgEl ->
-                        imgEl.attr("src").ifBlank { imgEl.attr("data-src").ifBlank { imgEl.attr("data-original") } }
-                    } ?: ""
+                    val img = UniversalMangaDomExtractor.extractImageUrl(it, baseUrl)
                     val title = it.selectFirst(".post-title, h3, h2, .entry-title, .title")?.text()?.trim() ?: "Unknown"
                     items.add(
                         ContentItem(
@@ -208,9 +204,10 @@ abstract class BloggerThemeScraper(
             val doc = fetchDocument(itemId)
             val title = doc.selectFirst("h1.post-title, h1.entry-title, h1, .post-title, .entry-title, h2.title, .title")?.text()?.trim() 
                 ?: doc.title().replace(" - Lightsaber Komik", "").replace(" - ZhuxiManhwa", "").trim()
-            val img = doc.selectFirst("meta[property=og:image]")?.attr("content")
-                ?: doc.selectFirst(".post-body img, .separator img, .reader-area img, .entry-content img, .b-img img, .post img")?.attr("src")
-                ?: ""
+            val img = UniversalMangaDomExtractor.extractImageUrl(
+                doc.selectFirst("meta[property=og:image]") ?: doc.selectFirst(".post-body img, .separator img, .reader-area img, .entry-content img, .b-img img, .post img") ?: doc,
+                baseUrl
+            )
             val desc = doc.selectFirst(".post-body p, #synopsis, .synopsis, .description, .post-body, .entry-content, .post-snippet")?.text()?.trim() ?: ""
             val genres = doc.select(".labels a, .tags a, .post-labels a, a[rel=tag], a[href*='/search/label/']").mapNotNull {
                 val t = it.text().trim()
@@ -340,40 +337,13 @@ abstract class BloggerThemeScraper(
     override suspend fun getPagesList(chapterId: String): List<String> {
         try {
             val doc = fetchDocument(chapterId)
-            val images = mutableListOf<String>()
+            val pages = UniversalMangaDomExtractor.extractChapterPages(doc, chapterId)
 
-            // 1. Selector scan
-            val imgElements = doc.select(".separator img, .post img, .post-body img, .entry-content img, #readerarea img, #Viewer-module img, .s1.p-20 img, article img")
-            for (img in imgElements) {
-                val src = img.attr("src").ifBlank { 
-                    img.attr("data-src").ifBlank { 
-                        img.attr("data-original").ifBlank { 
-                            img.attr("srcset").split(",").firstOrNull()?.trim()?.split(" ")?.firstOrNull() ?: "" 
-                        } 
-                    } 
-                }.trim()
-
-                if (src.isNotBlank() && isValidMangaImage(src)) {
-                    images.add(src)
-                }
-            }
-
-            // 2. If empty, scan all img tags
-            if (images.isEmpty()) {
-                val allImgs = doc.select("img")
-                for (img in allImgs) {
-                    val src = img.attr("src").ifBlank { img.attr("data-src") }.trim()
-                    if (src.isNotBlank() && isValidMangaImage(src)) {
-                        images.add(src)
-                    }
-                }
-            }
-
-            if (images.isEmpty()) {
+            if (pages.isEmpty()) {
                 throw java.io.IOException("Tidak ditemukan halaman gambar pada chapter $chapterId")
             }
 
-            return images.distinct()
+            return pages
         } catch (e: Exception) {
             SourceStatusBus.reportFromException(sourceId, sourceName, e)
             throw e

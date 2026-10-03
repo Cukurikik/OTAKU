@@ -1,27 +1,23 @@
 package com.example.data.sources.core
 
+import com.example.data.sources.manga.base.UniversalMangaDomExtractor
 import org.jsoup.nodes.Element
 
 object ParserUtils {
     fun extractImageUrl(element: Element?): String? {
         if (element == null) return null
-        return sequenceOf(
-            element.attr("src"),
-            element.attr("data-src"),
-            element.attr("data-lazy-src"),
-            element.attr("data-original"),
-            element.attr("data-url")
-        )
-        .map { it.trim() }
-        .firstOrNull { it.isNotEmpty() }
+        val url = UniversalMangaDomExtractor.extractImageUrl(element)
+        return url.ifBlank { null }
     }
 
     fun extractSrcSet(element: Element?): List<String> {
         if (element == null) return emptyList()
-        return element
-            .attr("srcset")
+        val raw = element.attr("srcset").ifBlank { element.attr("data-srcset") }
+        if (raw.isBlank()) return emptyList()
+        return raw
             .split(",")
             .map { it.trim().substringBefore(" ") }
-            .filter { it.isNotBlank() }
+            .filter { it.isNotBlank() && UniversalMangaDomExtractor.isValidMangaImage(it) }
     }
 }
+

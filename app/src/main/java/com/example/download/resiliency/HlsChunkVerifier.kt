@@ -68,6 +68,35 @@ object HlsChunkVerifier {
     }
 
     /**
+     * Memverifikasi integritas byte buffer segmen yang baru diunduh di memori (in-memory validation).
+     */
+    fun verifyBytesIntegrity(bytes: ByteArray, expectedByteSize: Long = -1L): Boolean {
+        if (bytes.isEmpty()) return false
+        if (expectedByteSize > 0L && bytes.size.toLong() != expectedByteSize) return false
+        if (bytes.size < 4) return false
+
+        // 1. MPEG-TS check (0x47 sync byte at offset 0 and multiples of 188)
+        if (bytes.size >= TS_PACKET_SIZE_188 && bytes[0] == TS_SYNC_BYTE) {
+            return true
+        }
+
+        // 2. AAC ADTS check
+        if (bytes.size >= 4 && bytes[0] == 0xFF.toByte() && (bytes[1].toInt() and 0xF0) == 0xF0) {
+            return true
+        }
+
+        // 3. fMP4 box check
+        if (bytes.size >= 8) {
+            val boxType = String(bytes, 4, 4, Charsets.US_ASCII)
+            if (boxType in listOf("styp", "moof", "ftyp", "mdat")) {
+                return true
+            }
+        }
+
+        return bytes.size >= 188
+    }
+
+    /**
      * Memeriksa validitas pola MPEG-TS Sync Byte (0x47) pada interval 188 atau 204 byte.
      * Segmen MPEG-TS yang valid harus memiliki byte 0x47 pada kelipatan panjang paketnya.
      */

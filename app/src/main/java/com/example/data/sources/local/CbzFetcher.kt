@@ -70,29 +70,54 @@ class CbzFetcher(
                 val file = File(pathOrUri)
                 if (!file.exists()) return null
 
-                ZipFile(file).use { zipFile ->
+                val secureStorage = com.example.storage.secure.SecureEncryptedMediaStorage(options.context)
+                if (secureStorage.isEncryptedMedia(file)) {
+                    // Encrypted CBZ / Encpack archive
                     if (entryName == "cover") {
-                        val entry = zipFile.entries().toList()
-                            .filter { !it.isDirectory && (
-                                it.name.lowercase().endsWith(".jpg") || it.name.lowercase().endsWith(".jpeg") || 
-                                it.name.lowercase().endsWith(".png") || it.name.lowercase().endsWith(".webp") || 
-                                it.name.lowercase().endsWith(".avif") || it.name.lowercase().endsWith(".dat") || 
-                                it.name.lowercase().endsWith(".bin")
-                            ) }
-                            .minByOrNull { it.name }
-                        if (entry != null) {
-                            zipFile.getInputStream(entry).use { it.source().buffer().readAll(buffer) }
-                        }
-                    } else {
-                        var entry = zipFile.getEntry(entryName)
-                        if (entry == null) {
-                            val entryBase = entryName.substringBeforeLast(".")
-                            entry = zipFile.entries().toList().firstOrNull { 
-                                !it.isDirectory && it.name.substringBeforeLast(".") == entryBase 
+                        val entries = secureStorage.listEncryptedArchiveEntries(file)
+                        val coverEntry = entries.filter {
+                            val l = it.lowercase()
+                            l.endsWith(".jpg") || l.endsWith(".jpeg") || l.endsWith(".png") ||
+                            l.endsWith(".webp") || l.endsWith(".avif") || l.endsWith(".dat") || l.endsWith(".bin")
+                        }.minOrNull()
+                        if (coverEntry != null) {
+                            val bytes = secureStorage.readEncryptedArchiveEntry(file, coverEntry)
+                            if (bytes != null && bytes.isNotEmpty()) {
+                                buffer.write(bytes)
                             }
                         }
-                        if (entry != null) {
-                            zipFile.getInputStream(entry).use { it.source().buffer().readAll(buffer) }
+                    } else {
+                        val bytes = secureStorage.readEncryptedArchiveEntry(file, entryName)
+                        if (bytes != null && bytes.isNotEmpty()) {
+                            buffer.write(bytes)
+                        }
+                    }
+                } else {
+                    // Standard unencrypted ZipFile
+                    ZipFile(file).use { zipFile ->
+                        if (entryName == "cover") {
+                            val entry = zipFile.entries().toList()
+                                .filter { !it.isDirectory && (
+                                    it.name.lowercase().endsWith(".jpg") || it.name.lowercase().endsWith(".jpeg") || 
+                                    it.name.lowercase().endsWith(".png") || it.name.lowercase().endsWith(".webp") || 
+                                    it.name.lowercase().endsWith(".avif") || it.name.lowercase().endsWith(".dat") || 
+                                    it.name.lowercase().endsWith(".bin")
+                                ) }
+                                .minByOrNull { it.name }
+                            if (entry != null) {
+                                zipFile.getInputStream(entry).use { it.source().buffer().readAll(buffer) }
+                            }
+                        } else {
+                            var entry = zipFile.getEntry(entryName)
+                            if (entry == null) {
+                                val entryBase = entryName.substringBeforeLast(".")
+                                entry = zipFile.entries().toList().firstOrNull { 
+                                    !it.isDirectory && it.name.substringBeforeLast(".") == entryBase 
+                                }
+                            }
+                            if (entry != null) {
+                                zipFile.getInputStream(entry).use { it.source().buffer().readAll(buffer) }
+                            }
                         }
                     }
                 }

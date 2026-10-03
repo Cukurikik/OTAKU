@@ -23,9 +23,7 @@ abstract class MangaStreamThemeScraper(
             val doc = fetchDocument(url)
             val items = doc.select(".bsx, .bixbox .bs, .listupd .bs, .item, .utao").mapNotNull {
                 val link = it.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-                val img = it.selectFirst("img")?.let { img ->
-                    img.attr("src").ifEmpty { img.attr("data-src") }.ifEmpty { img.attr("data-lazy-src") }
-                } ?: ""
+                val img = UniversalMangaDomExtractor.extractImageUrl(it, baseUrl)
                 val title = it.selectFirst(".tt, .title, h4, h2")?.text()?.trim() ?: "Unknown"
 
                 ContentItem(
@@ -56,9 +54,7 @@ abstract class MangaStreamThemeScraper(
             val doc = fetchDocument(url)
             val items = doc.select(".bsx, .bixbox .bs, .listupd .bs, .item, .utao").mapNotNull {
                 val link = it.selectFirst("a")?.attr("href") ?: return@mapNotNull null
-                val img = it.selectFirst("img")?.let { img ->
-                    img.attr("src").ifEmpty { img.attr("data-src") }.ifEmpty { img.attr("data-lazy-src") }
-                } ?: ""
+                val img = UniversalMangaDomExtractor.extractImageUrl(it, baseUrl)
                 val title = it.selectFirst(".tt, .title, h4, h2")?.text()?.trim() ?: "Unknown"
 
                 ContentItem(
@@ -86,9 +82,7 @@ abstract class MangaStreamThemeScraper(
         try {
             val doc = fetchDocument(itemId)
             val title = doc.selectFirst(".entry-title, h1[itemprop=name], .tt, h1")?.text()?.trim() ?: "Unknown"
-            val img = doc.selectFirst(".thumb img, .infomanga img, .kover img, .bigcover img")?.let { img ->
-                img.attr("src").ifEmpty { img.attr("data-src") }
-            } ?: ""
+            val img = UniversalMangaDomExtractor.extractImageUrl(doc.selectFirst(".thumb img, .infomanga img, .kover img, .bigcover img") ?: doc, baseUrl)
             val desc = doc.selectFirst(".entry-content, .desc, .description, .sinopsis, [itemprop=description]")?.text()?.trim() ?: ""
             val genres = doc.select(".mgen a, .genres a, .genre-info a").map { it.text().trim() }
 
@@ -137,26 +131,7 @@ abstract class MangaStreamThemeScraper(
     override suspend fun getPagesList(chapterId: String): List<String> {
         try {
             val doc = fetchDocument(chapterId)
-            
-            // 1. Check for standard reader area images
-            var pages = doc.select("#readerarea img, .reader-area img, .ts-main-image").mapNotNull {
-                it.attr("src").ifEmpty { it.attr("data-src") }.ifEmpty { it.attr("data-lazy-src") }.trim()
-            }.filter { it.isNotBlank() && !it.contains("data:image") && !it.contains("banner") && !it.contains("logo") }
-            
-            // 2. Fallback to extracting from JS ts_reader
-            if (pages.isEmpty()) {
-                val scriptData = doc.select("script:containsData(ts_reader)").html()
-                if (scriptData.isNotBlank()) {
-                    val match = Regex("\"images\":\\[(.*?)\\]").find(scriptData)
-                    if (match != null) {
-                        val imagesStr = match.groupValues[1]
-                        pages = imagesStr.split(",").map { 
-                            it.trim().removeSurrounding("\"").replace("\\/", "/") 
-                        }.filter { it.isNotBlank() }
-                    }
-                }
-            }
-            return pages
+            return UniversalMangaDomExtractor.extractChapterPages(doc, chapterId)
         } catch (e: kotlinx.coroutines.CancellationException) {
             throw e
         } catch (e: Exception) {

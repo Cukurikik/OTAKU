@@ -51,10 +51,7 @@ class AsuraScansScraper(context: Context) : BaseMangaSource(context) {
             val title = titleEl?.text()?.trim() ?: el.text().trim()
             if (title.isBlank()) return@forEach
             
-            var img = el.selectFirst("img")?.absUrl("src") ?: ""
-            if (img.isEmpty() || img.contains("data:image")) {
-                img = el.selectFirst("img")?.absUrl("data-src") ?: ""
-            }
+            val img = com.example.data.sources.manga.base.UniversalMangaDomExtractor.extractImageUrl(el, currentBaseUrl())
             
             val absoluteUrl = if (href.startsWith("http")) href else "${currentBaseUrl()}$href"
             
@@ -78,7 +75,10 @@ class AsuraScansScraper(context: Context) : BaseMangaSource(context) {
         return try {
             val doc = fetchDocument(itemId)
             val title = doc.selectFirst("h1, .title, [class*=title]")?.text()?.trim() ?: "Unknown"
-            val img = doc.selectFirst("img[src*=cover], img[alt*=cover], img")?.absUrl("src") ?: ""
+            val img = com.example.data.sources.manga.base.UniversalMangaDomExtractor.extractImageUrl(
+                doc.selectFirst("img[src*=cover], img[alt*=cover], img") ?: doc,
+                currentBaseUrl()
+            )
             val desc = doc.selectFirst(".description, .synopsis, [class*=desc]")?.text()?.trim() ?: ""
             
             ContentItem(

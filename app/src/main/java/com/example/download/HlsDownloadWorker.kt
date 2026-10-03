@@ -13,6 +13,8 @@ import androidx.work.WorkerParameters
 import androidx.work.workDataOf
 import com.example.OtakuHubApp
 import com.example.data.NetworkModule
+import com.example.download.muxing.HlsStreamMultiplexerEngine
+import com.example.download.muxing.MoovAtomHeaderValidator
 import com.example.download.resiliency.HlsChunkVerifier
 import com.example.storage.StoragePathManager
 import kotlinx.coroutines.Dispatchers
@@ -123,74 +125,80 @@ class HlsDownloadWorker(
             }
 
             val totalSegments = segments.size
-            Log.i(TAG, "Memulai unduhan HLS resilient: $totalSegments segmen untuk '$title' ($targetQuality)")
+            Log.i(TAG, "Memulai unduhan HLS resilient via HlsStreamMultiplexerEngine: $totalSegments segmen untuk '$title' ($targetQuality)")
 
-            val downloadedFiles = mutableListOf<File>()
+            // 4. Inisialisasi HlsStreamMultiplexerEngine untuk direct sequential stream muxing (O(1) I/O overhead)
+            val multiplexerEngine = HlsStreamMultiplexerEngine(outputFile, totalSegments)
+            var downloadSucceeded = false
 
-            // 4. Iterasi dan Unduh setiap segmen dengan Atomic Retry & Verifikasi Integritas
-            for (index in 0 until totalSegments) {
-                if (isStopped) {
-                    Log.w(TAG, "Pengunduhan dihentikan oleh sistem/pengguna pada segmen $index")
-                    return@withContext Result.retry()
-                }
+            try {
+                for (index in 0 until totalSegments) {
+                    if (isStopped) {
+                        Log.w(TAG, "Pengunduhan dihentikan oleh sistem/pengguna pada segmen $index")
+                        multiplexerEngine.abort()
+                        return@withContext Result.retry()
+                    }
 
-                val segmentUrl = segments[index]
-                val chunkFile = File(stagingDir, "chunk_%05d.ts".format(index))
+                    val segmentUrl = segments[index]
+                    var segmentBytes: ByteArray? = null
+                    var attempts = 0
 
-                // Periksa apakah chunk sudah terunduh & valid dari checkpoint sebelumnya (Resumption)
-                var isChunkValid = chunkFile.exists() && HlsChunkVerifier.verifySegmentIntegrity(chunkFile)
+                    while (segmentBytes == null && attempts < MAX_RETRIES_PER_SEGMENT) {
+                        attempts++
+                        Log.d(TAG, "Mengunduh segmen [$index/$totalSegments] percobaan #$attempts: $segmentUrl")
+                        segmentBytes = fetchSegmentBytes(segmentUrl)
+                        if (segmentBytes != null && HlsChunkVerifier.verifyBytesIntegrity(segmentBytes)) {
+                            // Valid bytes received
+                            break
+                        } else {
+                            Log.w(TAG, "Segmen $index korup atau gagal verifikasi, mengulang...")
+                            segmentBytes = null
+                            delay((attempts * 500L))
+                        }
+                    }
 
-                var attempts = 0
-                while (!isChunkValid && attempts < MAX_RETRIES_PER_SEGMENT) {
-                    attempts++
-                    Log.d(TAG, "Mengunduh segmen [$index/$totalSegments] percobaan #$attempts: $segmentUrl")
-                    val downloadSuccess = downloadSegmentAtomic(segmentUrl, chunkFile)
-                    if (downloadSuccess && HlsChunkVerifier.verifySegmentIntegrity(chunkFile)) {
-                        isChunkValid = true
-                    } else {
-                        Log.w(TAG, "Segmen $index korup atau gagal verifikasi, mengulang...")
-                        if (chunkFile.exists()) chunkFile.delete()
-                        delay((attempts * 500L)) // Exponential backoff
+                    if (segmentBytes == null) {
+                        Log.e(TAG, "Gagal mengunduh segmen $index setelah $MAX_RETRIES_PER_SEGMENT percobaan")
+                        multiplexerEngine.abort()
+                        return@withContext Result.retry()
+                    }
+
+                    // Direct pipe append ke multiplexer engine
+                    multiplexerEngine.appendChunkBytes(segmentBytes, ptsOffsetUs = 0L)
+
+                    // Update progres berkala
+                    val progressPercent = ((index + 1) * 100) / totalSegments
+                    val progressStatus = "Mengunduh segmen ${index + 1}/$totalSegments ($progressPercent%)"
+                    setForeground(createForegroundInfo(title, progressPercent, 100, progressStatus))
+
+                    val downloadIdKey = "$sourceId||$mangaId||$chapterId"
+                    if (sourceId.isNotBlank() && mangaId.isNotBlank()) {
+                        com.example.workers.VideoDownloadService.downloadProgressMap[downloadIdKey]?.value = progressPercent / 100f
                     }
                 }
 
-                if (!isChunkValid) {
-                    Log.e(TAG, "Gagal mengunduh segmen $index setelah $MAX_RETRIES_PER_SEGMENT percobaan")
-                    return@withContext Result.retry()
+                // 5. Finalisasi Muxing & Validasi Moov Atom Header
+                setForeground(createForegroundInfo(title, 99, 100, "Memvalidasi Moov Atom & integritas kontainer video..."))
+                val validation = multiplexerEngine.finalizeMuxing()
+
+                if (!validation.isValid || outputFile.length() < 1024) {
+                    Log.e(TAG, "Validasi Moov Atom gagal untuk ${outputFile.name}: ${validation.errorMessage}")
+                    return@withContext Result.failure(workDataOf("ERROR" to (validation.errorMessage ?: "Final video validation failed")))
                 }
 
-                downloadedFiles.add(chunkFile)
-
-                // Update progres berkala
-                val progressPercent = ((index + 1) * 100) / totalSegments
-                val progressStatus = "Mengunduh segmen ${index + 1}/$totalSegments ($progressPercent%)"
-                setForeground(createForegroundInfo(title, progressPercent, 100, progressStatus))
-
-                // Update progress ke singleton map jika ada
-                val downloadIdKey = "$sourceId||$mangaId||$chapterId"
-                if (sourceId.isNotBlank() && mangaId.isNotBlank()) {
-                    com.example.workers.VideoDownloadService.downloadProgressMap[downloadIdKey]?.value = progressPercent / 100f
+                downloadSucceeded = true
+            } finally {
+                if (!downloadSucceeded) {
+                    multiplexerEngine.abort()
                 }
+                stagingDir.deleteRecursively()
             }
 
-            // 5. Penggabungan (*Muxing*) Seluruh Segmen TS Menjadi Berkas MP4 Final
-            setForeground(createForegroundInfo(title, 99, 100, "Menggabungkan dan memvalidasi kontainer video final..."))
-            val mergedFile = mergeTsSegmentsToFile(downloadedFiles, outputFile)
+            // 6. Update status ke Database jika terhubung
+            markDownloadSuccess(sourceId, mangaId, chapterId, outputFile, downloadDao, profileId)
 
-            // 6. Validasi Integritas Berkas Final
-            if (!mergedFile.exists() || mergedFile.length() < 1024) {
-                Log.e(TAG, "Berkas MP4 hasil gabungan tidak valid atau kosong: ${mergedFile.absolutePath}")
-                return@withContext Result.failure(workDataOf("ERROR" to "Final merged video is invalid"))
-            }
-
-            // 7. Bersihkan Berkas Chunk Staging Sementara
-            stagingDir.deleteRecursively()
-
-            // 8. Update status ke Database jika terhubung
-            markDownloadSuccess(sourceId, mangaId, chapterId, mergedFile, downloadDao, profileId)
-
-            Log.i(TAG, "Sukses menyelesaikan unduhan HLS resilient: ${mergedFile.absolutePath} (${mergedFile.length() / 1024 / 1024} MB)")
-            Result.success(workDataOf("OUTPUT_PATH" to mergedFile.absolutePath))
+            Log.i(TAG, "Sukses menyelesaikan unduhan HLS stream muxing: ${outputFile.absolutePath} (${outputFile.length() / 1024 / 1024} MB)")
+            Result.success(workDataOf("OUTPUT_PATH" to outputFile.absolutePath))
         } catch (e: Exception) {
             Log.e(TAG, "Exception pada HlsDownloadWorker: ${e.message}", e)
             Result.retry()
@@ -366,6 +374,28 @@ class HlsDownloadWorker(
                 }
             }
         } catch (_: Exception) {}
+    }
+
+    private suspend fun fetchSegmentBytes(url: String): ByteArray? = withContext(Dispatchers.IO) {
+        try {
+            val reqUri = android.net.Uri.parse(url)
+            val headers = com.example.media.PersistentHttpHeaderResolver.resolveHeadersForRequest(
+                requestUri = reqUri,
+                activeStreamUrl = url
+            )
+
+            val requestBuilder = Request.Builder().url(url)
+            headers.forEach { (k, v) -> requestBuilder.header(k, v) }
+
+            val response = NetworkModule.okHttpClient.newCall(requestBuilder.build()).execute()
+            if (!response.isSuccessful) return@withContext null
+
+            val body = response.body ?: return@withContext null
+            val bytes = body.bytes()
+            if (bytes.isNotEmpty()) bytes else null
+        } catch (e: Exception) {
+            null
+        }
     }
 
     private suspend fun downloadSegmentAtomic(url: String, targetFile: File): Boolean = withContext(Dispatchers.IO) {
